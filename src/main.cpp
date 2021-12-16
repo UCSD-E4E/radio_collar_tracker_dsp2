@@ -9,7 +9,7 @@ int add(int i, int j) {
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(cmake_example, m) {
+PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
     m.doc() = R"pbdoc(
         Pybind11 example plugin
         -----------------------

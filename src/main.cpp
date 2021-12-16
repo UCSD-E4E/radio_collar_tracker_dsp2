@@ -3,13 +3,26 @@
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-int add(int i, int j) {
-    return i + j;
-}
+class PingFinder
+{
+public:
+    void start(void)
+    {
+
+    }
+    void stop(void)
+    {
+
+    }
+};
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
+    py::class_<PingFinder>(m, "PingFinder")
+        .def("start", &PingFinder::start)
+        .def("stop", &PingFinder::stop)
+    ;
     m.doc() = R"pbdoc(
         Pybind11 example plugin
         -----------------------
@@ -19,21 +32,7 @@ PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
         .. autosummary::
            :toctree: _generate
 
-           add
-           subtract
     )pbdoc";
-
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
-
-    m.def("subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-        Subtract two numbers
-
-        Some other explanation about the subtract function.
-    )pbdoc");
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

@@ -23,38 +23,38 @@ void RCT::PingFinder::start(void)
 {
     if(test_config)
     {
-        // sdr = new RCT::SDR_TEST(test_data, run_flag);
+        sdr = new RCT::SDR_TEST(test_data, run_flag);
     }
     else
     {
         sdr = new RCT::SDR(gain, sampling_rate, rx_frequency);
     }
-    // if(nullptr == sdr)
-    // {
-    //     throw std::runtime_error("Unable to instantiate SDR instance");
-    // }
+    if(nullptr == sdr)
+    {
+        throw std::runtime_error("Unable to instantiate SDR instance");
+    }
 
-    // dsp = new RCT::DSP_V3{sampling_rate,
-    //                       rx_frequency,
-    //                       target_frequencies,
-    //                       ping_width_ms,
-    //                       ping_min_snr,
-    //                       ping_max_len_mult,
-    //                       ping_min_len_mult};
-    // if(nullptr == dsp)
-    // {
-    //     delete(sdr);
-    //     throw std::runtime_error("Unable to instantiate DSP instance");
-    // }
-    // if(!test_config)
-    // {
-    //     std::ostringstream buffer;
-    //     buffer << "RAW_DATA_";
-    //     buffer << std::setw(6) << std::setfill('0') << run_num;
-    //     buffer << std::setw(1) << "_";
-    //     buffer << std::setw(4) << "%06d";
-    //     dsp->setOutputDir(data_dir, buffer.str()); 
-    // }
+    dsp = new RCT::DSP_V3{sampling_rate,
+                          rx_frequency,
+                          target_frequencies,
+                          ping_width_ms,
+                          ping_min_snr,
+                          ping_max_len_mult,
+                          ping_min_len_mult};
+    if(nullptr == dsp)
+    {
+        delete(sdr);
+        throw std::runtime_error("Unable to instantiate DSP instance");
+    }
+    if(!test_config)
+    {
+        std::ostringstream buffer;
+        buffer << "RAW_DATA_";
+        buffer << std::setw(6) << std::setfill('0') << run_num;
+        buffer << std::setw(1) << "_";
+        buffer << std::setw(4) << "%06d";
+        dsp->setOutputDir(data_dir, buffer.str()); 
+    }
 }
 
 void RCT::PingFinder::stop(void)

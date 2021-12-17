@@ -39,31 +39,31 @@ namespace RCT{
 
 		// set sample rate
 		syslog(LOG_DEBUG, "Setting RX Rate: %f Msps...\n", (rate / 1e6));
-		// uhd_usrp_set_rx_rate(usrp, rate, channel);
+		uhd_usrp_set_rx_rate(usrp, rate, channel);
 		uhd_usrp_get_rx_rate(usrp, channel, &value);
-		// syslog(LOG_DEBUG, "Actual RX Rate: %f Msps...\n", (value / 1e6));
+		syslog(LOG_DEBUG, "Actual RX Rate: %f Msps...\n", (value / 1e6));
 
-		// if((value / rate) - 1.0 > 0.01){
-		// 	syslog(LOG_WARNING, "WARNING: RX rate not correctly set, actual is %f!", value);
-		// }
+		if((value / rate) - 1.0 > 0.01){
+			syslog(LOG_WARNING, "WARNING: RX rate not correctly set, actual is %f!", value);
+		}
 
-		// // set the rf gain
-		// syslog(LOG_DEBUG, "Setting RX Gain: %f dB...\n", gain);
-		// uhd_usrp_set_rx_gain(usrp, gain, channel, ""); 
-		// uhd_usrp_get_rx_gain(usrp, channel, "", &value);
-		// syslog(LOG_DEBUG, "Actual RX Gain: %f dB...\n", value);
+		// set the rf gain
+		syslog(LOG_DEBUG, "Setting RX Gain: %f dB...\n", gain);
+		uhd_usrp_set_rx_gain(usrp, gain, channel, ""); 
+		uhd_usrp_get_rx_gain(usrp, channel, "", &value);
+		syslog(LOG_DEBUG, "Actual RX Gain: %f dB...\n", value);
 		
-		// // set freq
-		// syslog(LOG_DEBUG, "Setting RX Freq: %f MHz...\n", (freq / 1e6));
-		// uhd_tune_request_t tune_request{};
-		// tune_request.target_freq = freq;
-		// tune_request.rf_freq_policy = UHD_TUNE_REQUEST_POLICY_AUTO;
-		// tune_request.dsp_freq_policy = UHD_TUNE_REQUEST_POLICY_AUTO;
+		// set freq
+		syslog(LOG_DEBUG, "Setting RX Freq: %f MHz...\n", (freq / 1e6));
+		uhd_tune_request_t tune_request{};
+		tune_request.target_freq = freq;
+		tune_request.rf_freq_policy = UHD_TUNE_REQUEST_POLICY_AUTO;
+		tune_request.dsp_freq_policy = UHD_TUNE_REQUEST_POLICY_AUTO;
 		
-		// uhd_tune_result_t tune_result{};
+		uhd_tune_result_t tune_result{};
 
-		// uhd_usrp_set_rx_freq(usrp, &tune_request, channel, &tune_result);
-		// syslog(LOG_DEBUG, "Actual RX Freq: %f MHz...\n", (tune_result.actual_rf_freq / 1e6));
+		uhd_usrp_set_rx_freq(usrp, &tune_request, channel, &tune_result);
+		syslog(LOG_DEBUG, "Actual RX Freq: %f MHz...\n", (tune_result.actual_rf_freq / 1e6));
 
 	}
 

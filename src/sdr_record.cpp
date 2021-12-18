@@ -1,11 +1,16 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
+#include <pybind11/chrono.h>
 #include "sdr_record.hpp"
 #include <cstdio>
 #include <syslog.h>
 #include "sdr.hpp"
 #include "sdr_test.hpp"
 #include "dspv3.hpp"
+
+#include <chrono>
+#include <thread>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -55,20 +60,73 @@ void RCT::PingFinder::start(void)
         buffer << std::setw(4) << "%06d";
         dsp->setOutputDir(data_dir, buffer.str()); 
     }
+
+    sink = new RCT::PingSink();
+    if(nullptr == sink)
+    {
+        delete(dsp);
+        delete(sdr);
+        throw std::runtime_error("Unable to instantiate Ping Sink instance");
+    }
+    for(auto &fn : callbacks)
+    {
+        sink->register_callback(fn);
+    }
+    
+    dsp->startProcessing(sdr_queue, sdr_queue_mutex, sdr_var, ping_queue, 
+        ping_queue_mutex, ping_var);
+    sdr->startStreaming(sdr_queue, sdr_queue_mutex, sdr_var);
+    sink->start(ping_queue, ping_queue_mutex, ping_var);
+}
+
+void RCT::PingFinder::register_callback(const pybind11::object &fn)
+{
+    callbacks.push_back(fn);
+}
+
+void RCT::PingFinder::_testThread(void)
+{
+    std::cout << "running" << std::endl;
+    while(run_flag)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    }
+    std::cout << "stopping" << std::endl;
+    for(auto &it: callbacks)
+    {
+        std::cout << "Calling " << std::endl;
+        it(std::chrono::system_clock::now(), (double) 0.00, (std::uint64_t) 1234);
+        std::cout << "Finished Calling " << std::endl;
+    }
 }
 
 void RCT::PingFinder::stop(void)
 {
-    if(nullptr != dsp)
+    if(nullptr == sdr)
     {
-        delete(dsp);
-        dsp = nullptr;
+        throw std::runtime_error("SDR not initialized");
     }
-    if(nullptr != sdr)
+    sdr->stopStreaming();
+    if(nullptr == dsp)
     {
-        delete(sdr);
-        sdr = nullptr;
+        throw std::runtime_error("DSP not initialized");
     }
+    dsp->stopProcessing();
+    if(nullptr == sink)
+    {
+        throw std::runtime_error("Ping Sink not initialized");
+    }
+    sink->stop();
+
+    delete(sink);
+    sink = nullptr;
+    delete(dsp);
+    dsp = nullptr;
+    delete(sdr);
+    sdr = nullptr;
+    
+    callbacks.clear();
 }
 
 std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)
@@ -80,6 +138,7 @@ PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
         .def(py::init(&RCT::PingFinder::create))
         .def("start", &RCT::PingFinder::start)
         .def("stop", &RCT::PingFinder::stop)
+        .def("register_callback", &RCT::PingFinder::register_callback)
         .def_readwrite("gain", &RCT::PingFinder::gain)
         .def_readwrite("sampling_rate", &RCT::PingFinder::sampling_rate)
         .def_readwrite("rx_frequency", &RCT::PingFinder::rx_frequency)

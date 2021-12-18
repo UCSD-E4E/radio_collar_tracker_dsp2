@@ -10,6 +10,10 @@
 #include "dsp.hpp"
 #include <condition_variable>
 #include "ping.hpp"
+#include <thread>
+#include <functional>
+#include <pybind11/functional.h>
+#include "ping_sink.hpp"
 
 namespace RCT{
     class PingFinder
@@ -57,6 +61,8 @@ namespace RCT{
 		 */
 		RCT::DSP* dsp;
 
+		RCT::PingSink* sink;
+
 
 		/**
 		 * Synchronization and wake variable - this signals the main run loop
@@ -67,6 +73,10 @@ namespace RCT{
 		 * Synchronization and wake mutex for run loop
 		 */
 		std::mutex run_mutex;
+
+
+		void _testThread(void);
+		std::vector<pybind11::object> callbacks;
 
     public:
         double gain;
@@ -84,7 +94,7 @@ namespace RCT{
 
         PingFinder();
 
-
+		void register_callback(const pybind11::object &fn);
         void start(void);
         void stop(void);
 

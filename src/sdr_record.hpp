@@ -80,12 +80,12 @@ namespace RCT{
 
     public:
         double gain;
-        std::uint32_t sampling_rate;
-        std::uint32_t rx_frequency;
-        std::uint32_t run_num;
-        bool test_config;
-        std::string data_dir;
-        std::string test_data;
+        std::uint32_t sampling_rate = 2000000;
+        std::uint32_t center_frequency = 100000000;
+        std::uint32_t run_num = 0;
+        bool enable_test_data = false;
+        std::string output_dir;
+        std::string test_data_path;
         std::uint32_t ping_width_ms;
         double ping_min_snr;
         double ping_max_len_mult;

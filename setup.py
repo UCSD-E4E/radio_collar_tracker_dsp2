@@ -121,7 +121,7 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="radio_collar_tracker_dsp2",
-    version="0.0.0.1",
+    version="0.0.0.2",
     author="Nathan Hui",
     author_email="nthui@eng.ucsd.edu",
     description="RCT SDR interface",

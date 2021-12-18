@@ -17,8 +17,8 @@
 
 namespace py = pybind11;
 
-RCT::PingFinder::PingFinder(): gain(-1), sampling_rate(0), rx_frequency(0), 
-    run_num(0), data_dir(""), test_data(""), ping_width_ms(36), ping_min_snr(4),
+RCT::PingFinder::PingFinder(): gain(-1), sampling_rate(0), center_frequency(0), 
+    run_num(0), output_dir(""), test_data_path(""), ping_width_ms(36), ping_min_snr(4),
     ping_max_len_mult(1.5), ping_min_len_mult(0.75), sdr(nullptr), dsp(nullptr)
 {
 
@@ -26,13 +26,13 @@ RCT::PingFinder::PingFinder(): gain(-1), sampling_rate(0), rx_frequency(0),
 
 void RCT::PingFinder::start(void)
 {
-    if(test_config)
+    if(enable_test_data)
     {
-        sdr = new RCT::SDR_TEST(test_data, run_flag);
+        sdr = new RCT::SDR_TEST(test_data_path, run_flag);
     }
     else
     {
-        sdr = new RCT::SDR(gain, sampling_rate, rx_frequency);
+        sdr = new RCT::SDR(gain, sampling_rate, center_frequency);
     }
     if(nullptr == sdr)
     {
@@ -40,7 +40,7 @@ void RCT::PingFinder::start(void)
     }
 
     dsp = new RCT::DSP_V3{sampling_rate,
-                          rx_frequency,
+                          center_frequency,
                           target_frequencies,
                           ping_width_ms,
                           ping_min_snr,
@@ -51,14 +51,14 @@ void RCT::PingFinder::start(void)
         delete(sdr);
         throw std::runtime_error("Unable to instantiate DSP instance");
     }
-    if(!test_config)
+    if(!enable_test_data)
     {
         std::ostringstream buffer;
         buffer << "RAW_DATA_";
         buffer << std::setw(6) << std::setfill('0') << run_num;
         buffer << std::setw(1) << "_";
         buffer << std::setw(4) << "%06d";
-        dsp->setOutputDir(data_dir, buffer.str()); 
+        dsp->setOutputDir(output_dir, buffer.str()); 
     }
 
     sink = new RCT::PingSink();
@@ -134,34 +134,55 @@ std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)
     return std::unique_ptr<RCT::PingFinder>(new PingFinder());
 }
 PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
-    py::class_<RCT::PingFinder>(m, "PingFinder")
-        .def(py::init(&RCT::PingFinder::create))
-        .def("start", &RCT::PingFinder::start)
-        .def("stop", &RCT::PingFinder::stop)
-        .def("register_callback", &RCT::PingFinder::register_callback)
-        .def_readwrite("gain", &RCT::PingFinder::gain)
-        .def_readwrite("sampling_rate", &RCT::PingFinder::sampling_rate)
-        .def_readwrite("rx_frequency", &RCT::PingFinder::rx_frequency)
-        .def_readwrite("run_num", &RCT::PingFinder::run_num)
-        .def_readwrite("test_config", &RCT::PingFinder::test_config)
-        .def_readwrite("data_dir", &RCT::PingFinder::data_dir)
-        .def_readwrite("test_data", &RCT::PingFinder::test_data)
-        .def_readwrite("ping_width_ms", &RCT::PingFinder::ping_width_ms)
-        .def_readwrite("ping_min_snr", &RCT::PingFinder::ping_min_snr)
-        .def_readwrite("ping_max_len_mult", &RCT::PingFinder::ping_max_len_mult)
-        .def_readwrite("ping_min_len_mult", &RCT::PingFinder::ping_min_len_mult)
-        .def_readwrite("target_frequencies", &RCT::PingFinder::target_frequencies)
-    ;
+    auto pf = py::class_<RCT::PingFinder>(m, "PingFinder", "Ping Finder class. "
+        " This class processes SDR data to detect pings and return them via "
+        "callbacks");
+    pf.def(py::init(&RCT::PingFinder::create), "Creates a new PingFinder "
+        "object.  This only creates the object, it does not initialize the "
+        "underlying resources");
+    pf.def("start", &RCT::PingFinder::start, "Starts the PingFinder.  This "
+        "initializes the underlying SDR and signal processing threads.  All "
+        "parameters must be set prior to invocation of this method.");
+    pf.def("stop", &RCT::PingFinder::stop, "Stops the PingFinder.  This stops "
+        "and releases the underlying SDR and signal processing threads.  It "
+        "will also clear the current callback registrations.");
+    pf.def("register_callback", &RCT::PingFinder::register_callback);
+    pf.def_readwrite("gain", &RCT::PingFinder::gain, "Sets the internal gain "
+        "of the SDR");
+    pf.def_readwrite("sampling_rate", &RCT::PingFinder::sampling_rate, "Sets "
+        "the sampling rate of the SDR");
+    pf.def_readwrite("center_frequency", &RCT::PingFinder::center_frequency, 
+        "Sets the center frequency of the SDR");
+    pf.def_readwrite("run_num", &RCT::PingFinder::run_num, "Set the current "
+        "run number");
+    pf.def_readwrite("output_dir", &RCT::PingFinder::output_dir, "Sets the "
+        "output directory.  This is the directory in which the RAW_DATA* files "
+        "will be placed");
+    pf.def_readwrite("enable_test_data", &RCT::PingFinder::enable_test_data,
+        "Switch to enable or disable test data.  If set to true, uses test "
+        "data instead of an SDR.  Test data is pulled from test_data_path");
+    pf.def_readwrite("test_data_path", &RCT::PingFinder::test_data_path, 
+        "Sets the test data directory.  If enable_test_data is set, "
+        "PingFinder will use the RAW_DATA* files in this directory.");
+    pf.def_readwrite("ping_min_snr", &RCT::PingFinder::ping_min_snr, "Sets "
+        "the minimum ping SNR to be accepted");
+    pf.def_readwrite("ping_width_ms", &RCT::PingFinder::ping_width_ms, "Sets "
+        "the nominal ping width in milliseconds");
+    pf.def_readwrite("ping_max_len_mult", &RCT::PingFinder::ping_max_len_mult,
+        "Sets the max multiplier of the ping width");
+    pf.def_readwrite("ping_min_len_mult", &RCT::PingFinder::ping_min_len_mult,
+        "Sets the min multipler of the ping width");
+    pf.def_readwrite("target_frequencies", &RCT::PingFinder::target_frequencies,
+        "Sets the target frequencies");
+    
     m.doc() = R"pbdoc(
-        Pybind11 example plugin
+        Radio Collar Tracker DSP Module
         -----------------------
 
-        .. currentmodule:: cmake_example
-
-        .. autosummary::
-           :toctree: _generate
+        This module provides an interface to the RCT DSP C++ code
 
     )pbdoc";
+
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

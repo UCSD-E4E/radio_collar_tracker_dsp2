@@ -1,6 +1,8 @@
 #include "ping_sink.hpp"
 #include <chrono>
 #include <cstdint>
+#include <iostream>
+#include <pybind11/chrono.h>
 
 void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
     std::condition_variable &var)
@@ -21,7 +23,9 @@ void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
                 std::chrono::system_clock::time_point now{std::chrono::milliseconds{pingPtr->time_ms}};
                 double amplitude = pingPtr->amplitude;
                 std::uint64_t frequency = pingPtr->frequency;
+                pybind11::gil_scoped_acquire acquire;
                 cb(now, amplitude, frequency);
+                pybind11::gil_scoped_release release;
             }
             queue.pop();
         }
@@ -55,7 +59,7 @@ RCT::PingSink::~PingSink(void)
 
 }
 
-void RCT::PingSink::register_callback(const pybind11::object &fn)
+void RCT::PingSink::register_callback(pybind11::object &fn)
 {
     callbacks.push_back(fn);
 }

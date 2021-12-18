@@ -77,6 +77,9 @@ void RCT::PingFinder::start(void)
         ping_queue_mutex, ping_var);
     sdr->startStreaming(sdr_queue, sdr_queue_mutex, sdr_var);
     sink->start(ping_queue, ping_queue_mutex, ping_var);
+
+    // run_flag = true;
+    // test_thread = new std::thread(&RCT::PingFinder::_testThread, this);
 }
 
 void RCT::PingFinder::register_callback(const pybind11::object &fn)
@@ -96,7 +99,7 @@ void RCT::PingFinder::_testThread(void)
     for(auto &it: callbacks)
     {
         std::cout << "Calling " << std::endl;
-        it(std::chrono::system_clock::now(), (double) 0.00, (std::uint64_t) 1234);
+        (it)(std::chrono::system_clock::now(), (double) 0.00, (std::uint64_t) 1234);
         std::cout << "Finished Calling " << std::endl;
     }
 }
@@ -118,6 +121,11 @@ void RCT::PingFinder::stop(void)
         throw std::runtime_error("Ping Sink not initialized");
     }
     sink->stop();
+
+    // run_flag = false;
+    // test_thread->join();
+    // delete(test_thread);
+    // test_thread = nullptr;
 
     delete(sink);
     sink = nullptr;

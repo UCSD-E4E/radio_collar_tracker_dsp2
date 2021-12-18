@@ -1,6 +1,8 @@
 #ifndef __RTT_PING_SINK_H__
 #define __RTT_PING_SINK_H__
+#include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl_bind.h>
 #include <vector>
 #include "ping.hpp"
 #include <mutex>
@@ -40,7 +42,7 @@ namespace RCT
     public:
         PingSink(void);
         ~PingSink();
-        void register_callback(const pybind11::object &fn);
+        void register_callback(pybind11::object &fn);
         /**
 		 * Starts the PingLocalizer threads with the specified input queue for
 		 * pings and GPS module.

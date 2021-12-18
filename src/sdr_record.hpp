@@ -12,7 +12,9 @@
 #include "ping.hpp"
 #include <thread>
 #include <functional>
+#include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl_bind.h>
 #include "ping_sink.hpp"
 
 namespace RCT{
@@ -73,6 +75,8 @@ namespace RCT{
 		 * Synchronization and wake mutex for run loop
 		 */
 		std::mutex run_mutex;
+
+		std::thread* test_thread;
 
 
 		void _testThread(void);

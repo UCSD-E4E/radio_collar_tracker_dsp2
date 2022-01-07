@@ -1,0 +1,88 @@
+@startuml RCT Run Activity Diagram
+
+start
+
+fork
+    while(always)
+        fork
+            : uhd_usrp_probe;
+        fork again
+            : wait for gps;
+        fork again
+            : check filesystem;
+        end fork
+
+        : wait for start command;
+        : start Ping Finder;
+        : wait for stop command;
+        : stop Ping Finder;
+    endwhile
+fork again
+    while(always)
+        : process incoming TCP messages;
+    endwhile
+fork again
+    while(always)
+        : send heartbeat;
+    endwhile
+end fork
+stop
+@enduml
+
+@startuml RCT Run Class Diagram
+class RCTRun
+{
+    init()
+
+    doSensorPacket()
+    doHeartbeatPacket()
+
+    doPingPacket()
+
+    doSetConfiguationPacket()
+    doGetConfigurationPacket()
+    doStartDeploymentPacket()
+    doStopDeploymentPacket()
+
+    uib: UIBSingleton
+    comms: RCTDroneComms
+}
+
+class UIBSingleton
+{
+    init()
+    registerSensorHandler()
+    registerHeartbeatHandler()
+
+    sendStatus()
+}
+
+class RCTDroneComms
+{
+    init()
+
+    registerSetConfigPacket()
+    registerGetConfigPacket()
+    registerStartDeploymentPacket()
+    registerStopDeploymentPacket()
+
+    sendHeartbeat()
+    sendPing()
+    sendConfiguration()
+}
+
+class RCTGCSComms
+{
+    init()
+
+    sendSetConfig()
+    sendGetConfig()
+    sendStartDeployment()
+    sendStopDeployment()
+
+    registerHeartbeatHandler()
+    registerPingHandler()
+    registerConfigurationHandler()
+}
+
+@enduml

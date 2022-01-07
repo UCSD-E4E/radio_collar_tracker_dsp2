@@ -4,6 +4,10 @@ import datetime as dt
 import glob
 import os
 
+SDR_ENABLED = False
+GPS_ENABLED = True
+USB_ENABLED = True
+
 callback_called = 0
 def phony_callback(now: dt.datetime, amplitude:float, frequency: int):
     assert(isinstance(now, dt.datetime))
@@ -33,6 +37,8 @@ def test_run():
     for f in raw_files:
         os.remove(f)
 
+    if SDR_ENABLED == False:
+        return
     ping_finder.start()
 
     time.sleep(RUN_TIME)

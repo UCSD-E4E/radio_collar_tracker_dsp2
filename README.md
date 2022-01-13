@@ -9,18 +9,19 @@
     7. `sudo make install`
     8. `sudo ldconfig`
 2. Install `uhd`
-    1.  `sudo apt-get install libboost-all-dev`
-    2.	`git clone git://github.com/EttusResearch/uhd.git`
-    3.	`cd uhd/host`
-    4.	`git checkout v3.11.0.1`
-    5.	`mkdir build`
-    6.	`cd build`
-    7.	`cmake -DENABLE_B100=OFF -DENABLE_X300=OFF -DENABLE_N230=OFF -DENABLE_USRP1=OFF -DENABLE_USRP2=OFF -DENABLE_OCTOCLOCK=OFF -DENABLE_RFNOC=OFF -DENABLE_MPMD=OFF -DENABLE_EXAMPLES=OFF -DENABLE_MANUAL=OFF -DENABLE_TESTS=OFF ../`
-    8.	`make -j8`
-    9.	`sudo make install`
-    10.	`sudo ldconfig`
-    11.	`sudo /usr/local/lib/uhd/utils/uhd_images_downloader.py -t b2xx*`
-    12. `cd ../utils`
-    13. `sudo cp uhd-usrp.rules /etc/udev/rules.d/`
-    14. `sudo udevadm control --reload-rules`
-    15. `sudo udevadm trigger`
+    1.  `sudo apt-get install libboost-all-dev python-pip python-mako libusb-1.0-0-dev cmake build-essential`
+    2.  `sudo python -m pip install six requests enum pyserial`
+    3.	`git clone git://github.com/EttusResearch/uhd.git`
+    4.	`cd uhd/host`
+    5.	`git checkout v3.11.0.1`
+    6.	`mkdir build`
+    7.	`cd build`
+    8.	`cmake -DENABLE_B100=OFF -DENABLE_X300=OFF -DENABLE_N230=OFF -DENABLE_USRP1=OFF -DENABLE_USRP2=OFF -DENABLE_OCTOCLOCK=OFF -DENABLE_RFNOC=OFF -DENABLE_MPMD=OFF -DENABLE_EXAMPLES=OFF -DENABLE_MANUAL=OFF -DENABLE_TESTS=OFF ../`
+    9.	`make -j8`
+    10.	`sudo make install`
+    11.	`sudo ldconfig`
+    12.	`sudo /usr/local/lib/uhd/utils/uhd_images_downloader.py -t b2xx*`
+    13. `cd ../utils`
+    14. `sudo cp uhd-usrp.rules /etc/udev/rules.d/`
+    15. `sudo udevadm control --reload-rules`
+    16. `sudo udevadm trigger`

@@ -58,6 +58,8 @@ class RCT_STATES(Enum):
 
 class RCTRun:
     def __init__(self, tcpport: int, serialPort: str, baud: int, test = False):
+        baud = int(self.get_var('gps_baud'))
+        serialPort = self.get_var('gps_target')
         self.UIB_Singleton = UIBoard(serialPort, baud)
         self.cmdListener = CommandListener(self.UIB_Singleton, tcpport)
         self.test = test
@@ -130,7 +132,7 @@ class RCTRun:
                 self.ping_finder.enable_test_data = False
                 self.ping_finder.output_dir = output_dir
                 self.ping_finder.ping_width_ms = 25
-                self.ping_finder.ping_min_snr = 0
+                self.ping_finder.ping_min_snr = 25
                 self.ping_finder.ping_max_len_mult = 1.5
                 self.ping_finder.ping_min_len_mult = 0.5
                 self.ping_finder.target_frequencies = [173964000, 173900000]
@@ -281,7 +283,6 @@ class RCTRun:
          
 
     def initOutput(self, test):
-        test = True
         global output_dir
 
         outputDirInitialized = False
@@ -336,4 +337,4 @@ class RCTRun:
 
 if __name__ == "__main__":
     stop_threads = False
-    RCTRun(tcpport=9000, serialPort="/dev/serial/by-id/usb-Arduino_LLC_USB_IO_Board-if00", baud=115200)
+    RCTRun(tcpport=9000)

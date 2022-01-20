@@ -25,3 +25,7 @@
     14. `sudo cp uhd-usrp.rules /etc/udev/rules.d/`
     15. `sudo udevadm control --reload-rules`
     16. `sudo udevadm trigger`
+3. Install build dependencies
+    1. `sudo apt-get install python3.7 python3.7-dev cmake build-essential`
+    2. `python3.7 -m pip install git+https://github.com/UCSD-E4E/radio_collar_tracker_comms`
+    3. `python3.7 -m pip install .`

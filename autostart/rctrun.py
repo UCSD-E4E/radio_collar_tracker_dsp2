@@ -57,7 +57,7 @@ class RCT_STATES(Enum):
 
 
 class RCTRun:
-    def __init__(self, tcpport: int, serialPort: str, baud: int, test = False):
+    def __init__(self, tcpport: int, test = False):
         baud = int(self.get_var('gps_baud'))
         serialPort = self.get_var('gps_target')
         self.UIB_Singleton = UIBoard(serialPort, baud)

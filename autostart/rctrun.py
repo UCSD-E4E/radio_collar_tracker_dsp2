@@ -120,8 +120,12 @@ class RCTRun:
 
             sampling_freq = int(self.get_var('sampling_freq'))
             center_freq = int(self.get_var('center_freq'))
+            pingWidth = int(self.get_var("ping_width_ms"))
+            pingMinSNR = float(self.get_var("ping_min_snr"))
+            pingMax = float(self.get_var("ping_max_len_mult"))
+            pingMin = float(self.get_var("ping_min_len_mult"))
 
-            #TODO add python sdr record
+            #TODO add dynamic sdr_record
 
             if not self.test:
                 self.ping_finder = PingFinder()
@@ -131,10 +135,10 @@ class RCTRun:
                 self.ping_finder.run_num = run_num
                 self.ping_finder.enable_test_data = False
                 self.ping_finder.output_dir = output_dir
-                self.ping_finder.ping_width_ms = 25
-                self.ping_finder.ping_min_snr = 25
-                self.ping_finder.ping_max_len_mult = 1.5
-                self.ping_finder.ping_min_len_mult = 0.5
+                self.ping_finder.ping_width_ms = pingWidth
+                self.ping_finder.ping_min_snr = pingMinSNR
+                self.ping_finder.ping_max_len_mult = pingMax
+                self.ping_finder.ping_min_len_mult = pingMin
                 self.ping_finder.target_frequencies = [173964000, 173900000]
 
                 self.ping_finder.register_callback(self.UIB_Singleton.sendPing)

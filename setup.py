@@ -3,7 +3,7 @@ import re
 import subprocess
 import sys
 
-from setuptools import Extension, setup
+from setuptools import Extension, setup, find_packages
 from setuptools.command.build_ext import build_ext
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
@@ -127,6 +127,7 @@ setup(
     description="RCT SDR interface",
     long_description="",
     ext_modules=[CMakeExtension("radio_collar_tracker_dsp2")],
+    packages=find_packages(),
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={},
@@ -134,5 +135,10 @@ setup(
     install_requires=[
         'pyserial',
         'RCTComms',
-    ]
+    ],
+    entry_points={
+        'console_scripts':[
+            'rctrun=autostart.rctrun:main'
+        ]
+    }
 )

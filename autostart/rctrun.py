@@ -14,8 +14,8 @@ from enum import Enum, IntEnum
 
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
-from tcp_command import CommandListener
-from UIB_instance import UIBoard
+from autostart.tcp_command import CommandListener
+from autostart.UIB_instance import UIBoard
 
 WAIT_COUNT = 60
 
@@ -339,6 +339,10 @@ class RCTRun:
         return None
         
 
-if __name__ == "__main__":
+def main():
+    global stop_threads
     stop_threads = False
     RCTRun(tcpport=9000)
+
+if __name__ == "__main__":
+    main()

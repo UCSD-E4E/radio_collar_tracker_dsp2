@@ -1,0 +1,10 @@
+[Unit]
+Description=RCT OBC Runner
+Requires=network-online.target local-fs.target
+
+[Service]
+Type=idle
+ExecStart=/home/e4e/radio_collar_tracker_dsp2/.venv/bin/rctrun
+
+[Install]
+WantedBy=multi-user.target

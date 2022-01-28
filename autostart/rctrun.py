@@ -56,22 +56,27 @@ class RCT_STATES(Enum):
 	fail		=	6
 
 
+
 class RCTRun:
     def __init__(self, tcpport: int, test = False):
         baud = int(self.get_var('gps_baud'))
         serialPort = self.get_var('gps_target')
         self.UIB_Singleton = UIBoard(serialPort, baud)
-        self.cmdListener = CommandListener(self.UIB_Singleton, tcpport)
+        self.cmdListener = None
         self.test = test
+        self.tcpport = tcpport
 
         self.serialPort = serialPort
         self.ping_finder = None
+        self.delete_comms_thread = None
 
-
+        self.init_comms_thread = threading.Thread(target=self.initComms)
         self.init_SDR_thread = threading.Thread(target=self.initSDR, kwargs={'test':test})
         self.init_output_thread = threading.Thread(target=self.initOutput, kwargs={'test':test})
         self.init_gps_thread = threading.Thread(target=self.initGPS, kwargs={'test':test})
 
+
+        self.init_comms_thread.start()
         self.init_SDR_thread.start()
         self.init_output_thread.start()
         self.init_gps_thread.start()
@@ -82,9 +87,14 @@ class RCTRun:
         self.init_output_thread.join()
         self.init_gps_thread.join()
 
-        self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
+    def initComms(self):
+        if self.cmdListener is None:
+            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
+            self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
 
-    def stopRun(self):
+
+    def stopRun(self, packet, addr):
         self.doRun = False
         if self.ping_finder is not None:
             self.ping_finder.stop()
@@ -97,7 +107,7 @@ class RCTRun:
         if self.cmdListener.startFlag:
 
             if not self.test:
-                meta_files = glob.glob(os.path.join(output_dir, 'META_*'))
+                meta_files = glob.glob(os.path.join(output_dir, 'RUN_*'))
                 if len(meta_files) > 0:
                     run_num = int(re.sub("[^0-9]", "", sorted(meta_files)[-1])) + 1
                 else:
@@ -279,9 +289,9 @@ class RCTRun:
                         print("usrp")
                         usrpDeviceInitialized = True
                         initialized = True
-                        self.UIB_Singleton.sensorState = SDR_INIT_STATES.rdy
+                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.rdy
                     else:
-                        self.UIB_Singleton.sensorState = SDR_INIT_STATES.fail
+                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.fail
                         devicesFound = False
                         usrpDeviceInitialized = False
          

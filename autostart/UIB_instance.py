@@ -158,9 +158,12 @@ class UIBoard:
     def stop(self):
         self.run = False
         #self.sender.join()
-
         self.listener.join()
+        self.listener = threading.Thread(target=self.uibListener)
         self.switch = 0
 
     def registerSensorCallback(self, event, callback):
         self.__sensorCallbacks[event].append(callback)
+
+    def ready(self):
+        return (self.sdrState == 3) and (self.sensorState == 3) and (self.storageState == 4)

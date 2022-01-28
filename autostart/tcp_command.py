@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from curses.ascii import CR
 import socket
 import os
 import json
@@ -12,15 +13,20 @@ import sys
 import glob
 import traceback
 from UIB_instance import UIBoard
+from enum import IntEnum
+import errno
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
     rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
     rctSTOPCommand, rctACKCommand, EVENTS)
 from RCTComms.transport import RCTTCPClient, RCTTCPServer
 
+class COMMS_STATES(IntEnum):
+    disconnected = 0
+    connected = 1
+
 class RCTOpts(object):
     def __init__(self):
         self._configFile = '/usr/local/etc/rct_config'
-        #self._configFile = 'rct_config'
         self.options = ['ping_width_ms',
                 'ping_min_snr',
                 'ping_max_len_mult',
@@ -223,12 +229,16 @@ class CommandListener(object):
         super(CommandListener, self).__init__()
         self.sock = RCTTCPServer(port)
         self.port = mavComms(self.sock)
+        self.portAddr = port
 
         self.ping_file = None
         self.num = None
         self.newRun = False
         self._run = True
+        
+        self.state = COMMS_STATES.connected
         self.sender = threading.Thread(target=self._sender)
+        self.reconnect = threading.Thread(target=self._reconnectComms)
         #self.receiver = threading.Thread(target=self._listener)
         self.startFlag = False
         self.UIBoard = UIboard
@@ -248,6 +258,8 @@ class CommandListener(object):
         self.sender.join()
         #self.receiver.join()
         self.port.stop()
+        del self.port
+        self.UIBoard.run = False
         if self.ping_file is not None:
             self.ping_file.close()
             print('Closing file')
@@ -278,7 +290,7 @@ class CommandListener(object):
     def _sender(self):
         prevTime = datetime.datetime.now()
 
-        while self._run:
+        while (self.state == COMMS_STATES.connected):
             try:
                 now = datetime.datetime.now()
                 if (now - prevTime).total_seconds() > 1:
@@ -289,24 +301,66 @@ class CommandListener(object):
                     msg = heartbeatPacket
                     self.port.sendToGCS(msg)
                     prevTime = now
+            except BrokenPipeError:
+                print("broke pipe")
+                self._run = False
+                self.state = COMMS_STATES.disconnected
+                self.startFlag = False
+                self.UIBoard.switch = 0
+                self.port.stop()
+                if self.UIBoard.run:
+                    self.UIBoard.stop()
+                while self.sock.isOpen():
+                    time.sleep(1)
+                    print("still open")
+                print("sock closed")
+                self.reconnect.start()
             except Exception as e:
                 print("Early Fail!")
                 print(e)
+                    
                 time.sleep(1)
                 continue
 
+    def _reconnectComms(self):
+        self.sender.join()
+        self.sender = threading.Thread(target=self._sender)
+        self.reconnect = threading.Thread(target=self._reconnectComms)
+
+        self.port.start()
+        while not self.sock.isOpen():
+            time.sleep(1)
+        self.state = COMMS_STATES.connected
+        print("starting sender")
+        self._run = True
+        self.sender.start()
+
+
     def _gotStartCmd(self, packet: rctSTARTCommand, addr):
-        self.startFlag = True
-        self.UIBoard.switch = 1
-        self.UIBoard.run = True
-        self.UIBoard.listener.start()
-        self._sendAck(0x07)
-        print("Set start flag")
+        if self.UIBoard.ready():
+            self.startFlag = True
+            self.UIBoard.switch = 1
+            self.UIBoard.run = True
+            self.UIBoard.listener.start()
+            print("Set start flag")
+            self._sendAck(0x07, True)
+        else:
+            if not (self.UIBoard.storageState == 4):
+                print("Storage not ready!")
+                print(self.UIBoard.storageState)
+            if not (self.UIBoard.sensorState == 3):
+                print("GPS not ready!")
+                print(self.UIBoard.sensorState)
+            if not (self.UIBoard.sdrState == 3):
+                print("SDR not ready!")
+                print(self.UIBoard.sdrState)
+            self._sendAck(0x07, True)
 
     def _gotStopCmd(self, packet: rctSTOPCommand, addr):
         self.startFlag = False
         self.UIBoard.switch = 0
-        self._sendAck(0x09)
+        self.UIBoard.stop()
+        self._sendAck(0x09, True)
         try:
             self.ping_file.close()
         except Exception as e:
@@ -476,9 +530,9 @@ class CommandListener(object):
             print(str(e))
             self.port.sendToGCS(msg)
 
-    def _sendAck(self, id):
+    def _sendAck(self, id: int, result: bool):
         now = datetime.datetime.now()
-        packet = rctACKCommand(id, True, now)
+        packet = rctACKCommand(id, result, now)
         self.port.sendToGCS(packet)
 
     def _listener(self):
@@ -490,6 +544,8 @@ class CommandListener(object):
                 
                 packets = self.factory.parseBytes(data)
                 id = None
+                if len(packets) > 0 and (self.state == COMMS_STATES.disconnected):
+                    self.state = COMMS_STATES.connected
                 for packet in packets:
                     if packet.matches(0x05, 0x02):
                         id = 0x02
@@ -515,7 +571,6 @@ class CommandListener(object):
                         self._sendAck(id)
                         self._upgradeCmd(packet, addr)
                         
-
         
 
     def setup(self):

@@ -29,3 +29,8 @@
     1. `sudo apt-get install python3.7 python3.7-dev cmake build-essential`
     2. `python3.7 -m pip install git+https://github.com/UCSD-E4E/radio_collar_tracker_comms`
     3. `python3.7 -m pip install .`
+4. Configure service
+    1. `sudo cp rctrun.service /lib/systemd/system/rctrun.service`
+    2. `sudo chmod 644 /lib/systemd/system/rctrun.service`
+    3. `sudo systemctl daemon-reload`
+    4. `sudo systemctl enable rctrun.service`

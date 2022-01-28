@@ -14,7 +14,6 @@ import glob
 import traceback
 from UIB_instance import UIBoard
 from enum import IntEnum
-import errno
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
     rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
     rctSTOPCommand, rctACKCommand, EVENTS)

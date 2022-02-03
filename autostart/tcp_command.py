@@ -131,7 +131,7 @@ class RCTOpts(object):
                 assert(isinstance(value, str))
                 test = float(value)
                 assert(test > 1)
-            elif key == "DSP_pingMin"
+            elif key == "DSP_pingMin":
                 self._params['ping_min_len_mult'] = value
                 assert(isinstance(value, str))
                 test = float(value)

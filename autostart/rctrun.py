@@ -128,28 +128,21 @@ class RCTRun:
             self.cmdListener.setRun(run_dir, run_num)
             time.sleep(1)
 
-            sampling_freq = int(self.get_var('sampling_freq'))
-            center_freq = int(self.get_var('center_freq'))
-            pingWidth = int(self.get_var("ping_width_ms"))
-            pingMinSNR = float(self.get_var("ping_min_snr"))
-            pingMax = float(self.get_var("ping_max_len_mult"))
-            pingMin = float(self.get_var("ping_min_len_mult"))
-
             #TODO add dynamic sdr_record
 
             if not self.test:
                 self.ping_finder = PingFinder()
-                self.ping_finder.gain = 22.0
-                self.ping_finder.sampling_rate = sampling_freq
-                self.ping_finder.center_frequency = center_freq
+                self.ping_finder.gain = self.cmdListener.options.getOption("gain")
+                self.ping_finder.sampling_rate = self.cmdListener.options.getOption("sampling_freq")
+                self.ping_finder.center_frequency = self.cmdListener.options.getOption("center_freq")
                 self.ping_finder.run_num = run_num
                 self.ping_finder.enable_test_data = False
-                self.ping_finder.output_dir = output_dir
-                self.ping_finder.ping_width_ms = pingWidth
-                self.ping_finder.ping_min_snr = pingMinSNR
-                self.ping_finder.ping_max_len_mult = pingMax
-                self.ping_finder.ping_min_len_mult = pingMin
-                self.ping_finder.target_frequencies = [173964000, 173900000]
+                self.ping_finder.output_dir = self.cmdListener.options.getOption("output_dir")
+                self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("ping_width_ms")
+                self.ping_finder.ping_min_snr = self.cmdListener.options.getOption("ping_min_snr")
+                self.ping_finder.ping_max_len_mult = self.cmdListener.options.getOption("ping_max_len_mult")
+                self.ping_finder.ping_min_len_mult = self.cmdListener.options.getOption("ping_min_len_mult")
+                self.ping_finder.target_frequencies = self.cmdListener.options.getOption("frequencies")
 
                 self.ping_finder.register_callback(self.UIB_Singleton.sendPing)
 

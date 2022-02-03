@@ -110,61 +110,68 @@ class RCTOpts(object):
             assert(test > 0)
         self._params[option] = param
 
-    def setOptions(self, options):
+    def setOptions(self, options: dict):
         # Error check first before committing
         for key, value in options.items():
             print("Option: ")
             print(key)
             print(value)
-            if key == 'ping_width_ms':
+            if key == "DSP_pingWidth":
+                self._params['ping_width_ms'] = value
                 assert(isinstance(value, str))
                 test = float(value)
                 assert(test > 0)
-            elif key == 'ping_min_snr':
+            elif key == "DSP_pingSNR":
+                self._params['ping_min_snr'] = value
                 assert(isinstance(value, str))
                 test = float(value)
                 assert(test > 0)
-            elif key == 'ping_max_len_mult':
+            elif key == "DSP_pingMax":
+                self._params['ping_max_len_mult'] = value
                 assert(isinstance(value, str))
                 test = float(value)
                 assert(test > 1)
-            elif key == 'ping_min_len_mult':
+            elif key == "DSP_pingMin"
+                self._params['ping_min_len_mult'] = value
                 assert(isinstance(value, str))
                 test = float(value)
                 assert(test < 1)
                 assert(test > 0)
-            elif key == 'gps_mode':
+            elif key == "GPS_mode":
+                self._params['gps_mode'] = value
                 assert(isinstance(value, str))
                 assert(value == 'true' or value == 'false')
-            elif key == 'gps_target':
+            elif key == "GPS_device":
+                self._params['gps_target'] = value
                 assert(isinstance(value, str))
-            elif key == 'gps_baud':
+            elif key == "GPS_baud":
+                self._params['gps_baud'] = value
                 assert(isinstance(value, str))
                 test = int(value)
                 assert(value > 0)
-            elif key == 'frequencies':
-                assert(isinstance(self._params, list))
-                assert(all(isinstance(freq, int) and freq > 0 for freq in self._params))
-            elif key == 'autostart':
+            elif key == "frequencies":
+                self._params['frequencies'] = value
+            elif key == "SYS_autostart":
+                self._params['autostart'] = value
                 assert(isinstance(value, str))
                 assert(value == 'true' or value == 'false')
-            elif key == 'output_dir':
+            elif key == "SYS_outputDir":
+                self._params['output_dir'] = value
                 assert(isinstance(value, str))
-            elif key == 'sampling_freq':
-                assert(isinstance(value, str))
-                test = int(value)
-                assert(test > 0)
-            elif key == 'center_freq':
+            elif key == "SDR_samplingFreq":
+                self._params['sampling_freq'] = value
                 assert(isinstance(value, str))
                 test = int(value)
                 assert(test > 0)
+            elif key == "SDR_centerFreq":
+                self._params['center_freq'] = value
+                assert(isinstance(value, str))
+                test = int(value)
+                assert(test > 0)
+            elif key == "SDR_gain":
+                self._params["gain"] = value
 
 
-        for key, value in options.items():
-            if isinstance(value, list):
-                self._params[key] = value
-            else:
-                self._params[key] = [value]
 
     def writeOptions(self):
         #backups = glob.glob("&INSTALL_PREFIX/etc/*.bak")
@@ -244,7 +251,7 @@ class CommandListener(object):
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()
 
-        self._options = RCTOpts()
+        self.options = RCTOpts()
 
         self.setup()
 
@@ -370,21 +377,21 @@ class CommandListener(object):
         if packet.frequencies is None:
             return
         freqs = packet.frequencies
-        self._options.setOption('frequencies', freqs)
-        self._options.writeOptions()
+        self.options.setOption('frequencies', freqs)
+        self.options.writeOptions()
         packet = rctFrequenciesPacket(freqs)
 
         msg = packet
         self.port.sendToGCS(msg)
 
     def _gotGetFCmd(self, packet: rctGETFCommand, addr):
-        freqs = self._options.getOption('frequencies')
+        freqs = self.options.getOption('frequencies')
         packet = rctFrequenciesPacket(freqs)
         msg = packet
         self.port.sendToGCS(msg)
 
     def _gotGetOptsCmd(self, packet: rctGETOPTCommand, addr):
-        opts = self._options.getCommsOptions()
+        opts = self.options.getCommsOptions()
 
         print(opts)
         
@@ -397,18 +404,18 @@ class CommandListener(object):
         if 'confirm' not in packet:
             return
         if packet['confirm'] == 'true':
-            self._options.writeOptions()
+            self.options.writeOptions()
             print("Writing params")
         else:
             # load from backup
-            self._options.loadParams()
+            self.options.loadParams()
             print('Reloading params')
 
 
     def _gotSetOptsCmd(self, packet: rctSETOPTCommand, addr):
         opts = packet.options
-        self._options.setOptions(opts)
-        options = self._options.getAllOptions()
+        self.options.setOptions(opts)
+        options = self.options.getCommsOptions()
         packet = rctOptionsPacket(255, options)
         msg = packet
         self.port.sendToGCS(msg)

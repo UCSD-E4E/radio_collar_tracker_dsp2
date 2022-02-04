@@ -14,8 +14,8 @@ from enum import Enum, IntEnum
 
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
-from autostart.tcp_command import CommandListener
-from autostart.UIB_instance import UIBoard
+from tcp_command import CommandListener
+from UIB_instance import UIBoard
 
 WAIT_COUNT = 60
 

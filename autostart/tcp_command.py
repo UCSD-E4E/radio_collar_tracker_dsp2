@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from curses.ascii import CR
+from re import I
 import socket
 import os
 import json
@@ -12,7 +13,7 @@ import subprocess
 import sys
 import glob
 import traceback
-from autostart.UIB_instance import UIBoard
+from UIB_instance import UIBoard
 from enum import IntEnum
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
     rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
@@ -61,54 +62,89 @@ class RCTOpts(object):
                     self._params[newVar] = line.split('=')[1].strip().strip('"').strip("'")
 
     def getOption(self, option):
-        if option == 'frequencies':
-            return [int(self._params[option])]
-        return self._params[option]
+        if option == 'TGT_frequencies':
+            return [int(self._params["frequencies"])]
+        if option == "DSP_pingWidth":
+            return float(self._params['ping_width_ms'] )
+        elif option == "DSP_pingSNR":
+            return float(self._params['ping_min_snr'] )
+        elif option == "DSP_pingMax":
+            return float(self._params['ping_max_len_mult']) 
+        elif option == "DSP_pingMin":
+            return float(self._params['ping_min_len_mult']) 
+        elif option == "GPS_mode":
+            return self._params['gps_mode']
+        elif option == "GPS_device":
+            return self._params['gps_target'] 
+        elif option == "GPS_baud":
+            return int(self._params['gps_baud']) 
+        elif option == "SYS_autostart":
+            return self._params['autostart'] 
+        elif option == "SYS_outputDir":
+            return self._params['output_dir'] 
+        elif option == "SDR_samplingFreq":
+            return int(self._params['sampling_freq']) 
+        elif option == "SDR_centerFreq":
+            return int(self._params['center_freq']) 
+        elif option == "SDR_gain":
+            return float(self._params["gain"]) 
+    
 
     def setOption(self, option, param):
-        if option == 'ping_width_ms':
+        if option == "DSP_pingWidth":
+            self._params['ping_width_ms'] = param
             assert(isinstance(param, str))
             test = float(param)
             assert(test > 0)
-        elif option == 'ping_min_snr':
+        elif option == "DSP_pingSNR":
+            self._params['ping_min_snr'] = param
             assert(isinstance(param, str))
             test = float(param)
             assert(test > 0)
-        elif option == 'ping_max_len_mult':
+        elif option == "DSP_pingMax":
+            self._params['ping_max_len_mult'] = param
             assert(isinstance(param, str))
             test = float(param)
             assert(test > 1)
-        elif option == 'ping_min_len_mult':
+        elif option == "DSP_pingMin":
+            self._params['ping_min_len_mult'] = param
             assert(isinstance(param, str))
             test = float(param)
             assert(test < 1)
             assert(test > 0)
-        elif option == 'gps_mode':
+        elif option == "GPS_mode":
+            self._params['gps_mode'] = param
             assert(isinstance(param, str))
             assert(param == 'true' or param == 'false')
-        elif option == 'gps_target':
+        elif option == "GPS_device":
+            self._params['gps_target'] = param
             assert(isinstance(param, str))
-        elif option == 'gps_baud':
+        elif option == "GPS_baud":
+            self._params['gps_baud'] = param
             assert(isinstance(param, str))
             test = int(param)
             assert(param > 0)
-        elif option == 'frequencies':
-            assert(isinstance(param, list))
-            assert(all(isinstance(freq, int) and freq > 0 for freq in param))
-        elif option == 'autostart':
+        elif option == "TGT_frequencies":
+            self._params['frequencies'] = param
+        elif option == "SYS_autostart":
+            self._params['autostart'] = param
             assert(isinstance(param, str))
             assert(param == 'true' or param == 'false')
-        elif option == 'output_dir':
+        elif option == "SYS_outputDir":
+            self._params['output_dir'] = param
             assert(isinstance(param, str))
-        elif option == 'sampling_freq':
-            assert(isinstance(param, str))
-            test = int(param)
-            assert(test > 0)
-        elif option == 'center_freq':
+        elif option == "SDR_samplingFreq":
+            self._params['sampling_freq'] = param
             assert(isinstance(param, str))
             test = int(param)
             assert(test > 0)
-        self._params[option] = param
+        elif option == "SDR_centerFreq":
+            self._params['center_freq'] = param
+            assert(isinstance(param, str))
+            test = int(param)
+            assert(test > 0)
+        elif option == "SDR_gain":
+            self._params["gain"] = param
 
     def setOptions(self, options: dict):
         # Error check first before committing
@@ -149,7 +185,7 @@ class RCTOpts(object):
                 assert(isinstance(value, str))
                 test = int(value)
                 assert(value > 0)
-            elif key == "frequencies":
+            elif key == "TGT_frequencies":
                 self._params['frequencies'] = value
             elif key == "SYS_autostart":
                 self._params['autostart'] = value
@@ -174,22 +210,25 @@ class RCTOpts(object):
 
 
     def writeOptions(self):
-        #backups = glob.glob("&INSTALL_PREFIX/etc/*.bak")
-        backups = glob.glob("*.bak")
+        backups = glob.glob("/usr/local/etc/*.bak")
+        #backups = glob.glob("*.bak")
         if len(backups) > 0:
-            backup_numbers = [os.path.basename(path).split('.')[0].lstrip('rct_config') for path in backups]
+            backup_numbers = [os.path.basename(path).split('.')[0].lstrip('/usr/local/etc/rct_config') for path in backups]
             backup_numbers = [int(number) for number in backup_numbers if number != '']
             nextNumber = max(backup_numbers) + 1
         else:
             nextNumber = 1
 
-        #os.rename('&INSTALL_PREFIX/etc/rct_config', '&INSTALL_PREFIX/etc/rct_config%d.bak' % nextNumber)
-        os.rename('rct_config', 'rct_config%d.bak' % nextNumber)
+        os.rename('/usr/local/etc/rct_config', '/usr/local/etc/rct_config%d.bak' % nextNumber)
+        #os.rename('rct_config', 'rct_config%d.bak' % nextNumber)
 
         with open(self._configFile, 'w') as var_file:
             for key, value in list(self._params.items()):
-                for val in value:
-                    opt = '%s=%s\n' % (key, val)
+                if key == "frequencies":
+                    for val in value:
+                        opt = '%s=%s\n' % (key, str(val))
+                else:
+                    opt = '%s=%s\n' % (key, str(value))
                     print(opt.strip())
                     var_file.write(opt)
 
@@ -200,31 +239,29 @@ class RCTOpts(object):
         commsOpts = {}
         for key in self._params:
             if key == 'ping_width_ms':
-                commsOpts["DSP_pingWidth"] = self._params[key]
+                commsOpts["DSP_pingWidth"] = float(self._params[key])
             if key == 'ping_min_snr':
-                commsOpts["DSP_pingSNR"] = self._params[key]
+                commsOpts["DSP_pingSNR"] = float(self._params[key])
             if key == 'ping_max_len_mult':
-                commsOpts["DSP_pingMax"] = self._params[key]
+                commsOpts["DSP_pingMax"] = float(self._params[key])
             if key == 'ping_min_len_mult':
-                commsOpts["DSP_pingMin"] = self._params[key]
+                commsOpts["DSP_pingMin"] = float(self._params[key])
             if key == 'gps_mode':
                 commsOpts["GPS_mode"] = self._params[key]
             if key == 'gps_target':
                 commsOpts["GPS_device"] = self._params[key]
             if key == 'gps_baud':
-                commsOpts["GPS_baud"] = self._params[key]
-            if key == 'frequencies':
-                commsOpts["frequencies"] = self._params[key]
+                commsOpts["GPS_baud"] = int(self._params[key])
             if key == 'autostart':
                 commsOpts["SYS_autostart"] = self._params[key]
             if key == 'output_dir':
                 commsOpts["SYS_outputDir"] = self._params[key]
             if key == 'sampling_freq':
-                commsOpts["SDR_samplingFreq"] = self._params[key]
+                commsOpts["SDR_samplingFreq"] = int(self._params[key])
             if key == 'center_freq':
-                commsOpts["SDR_centerFreq"] = self._params[key]
+                commsOpts["SDR_centerFreq"] = int(self._params[key])
             if key == 'gain':
-                commsOpts['SDR_gain'] = self._params[key]
+                commsOpts['SDR_gain'] = float(self._params[key])
 
         return commsOpts
 
@@ -349,7 +386,6 @@ class CommandListener(object):
             self.UIBoard.run = True
             self.UIBoard.listener.start()
             print("Set start flag")
-            self._sendAck(0x07, True)
         else:
             if not (self.UIBoard.storageState == 4):
                 print("Storage not ready!")
@@ -360,13 +396,11 @@ class CommandListener(object):
             if not (self.UIBoard.sdrState == 3):
                 print("SDR not ready!")
                 print(self.UIBoard.sdrState)
-            self._sendAck(0x07, True)
 
     def _gotStopCmd(self, packet: rctSTOPCommand, addr):
         self.startFlag = False
         self.UIBoard.switch = 0
         self.UIBoard.stop()
-        self._sendAck(0x09, True)
         try:
             self.ping_file.close()
         except Exception as e:
@@ -377,15 +411,16 @@ class CommandListener(object):
         if packet.frequencies is None:
             return
         freqs = packet.frequencies
-        self.options.setOption('frequencies', freqs)
+        self.options.setOption('TGT_frequencies', freqs)
         self.options.writeOptions()
         packet = rctFrequenciesPacket(freqs)
 
         msg = packet
+        self._sendAck(0x03, True)
         self.port.sendToGCS(msg)
 
     def _gotGetFCmd(self, packet: rctGETFCommand, addr):
-        freqs = self.options.getOption('frequencies')
+        freqs = self.options.getOption('TGT_frequencies')
         packet = rctFrequenciesPacket(freqs)
         msg = packet
         self.port.sendToGCS(msg)
@@ -393,10 +428,9 @@ class CommandListener(object):
     def _gotGetOptsCmd(self, packet: rctGETOPTCommand, addr):
         opts = self.options.getCommsOptions()
 
-        print(opts)
+        print("Get Comms OPts: ", opts)
         
-        packet = rctOptionsPacket(scope=255, kwargs=opts)
-        msg = packet
+        msg = rctOptionsPacket(packet.scope, **opts)
         self.port.sendToGCS(msg)
 
 
@@ -416,8 +450,7 @@ class CommandListener(object):
         opts = packet.options
         self.options.setOptions(opts)
         options = self.options.getCommsOptions()
-        packet = rctOptionsPacket(255, options)
-        msg = packet
+        msg = rctOptionsPacket(packet.scope, **options)
         self.port.sendToGCS(msg)
 
     def _upgradeCmd(self, packet: rctUPGRADECommand, addr):
@@ -555,26 +588,31 @@ class CommandListener(object):
                 for packet in packets:
                     if packet.matches(0x05, 0x02):
                         id = 0x02
+                        self._sendAck(id, True)
                         self._gotGetFCmd(packet, addr)
                     elif packet.matches(0x05, 0x03):
                         id = 0x03
+                        self._sendAck(id, True)
                         self._gotSetFCmd(packet, addr)
                     elif packet.matches(0x05, 0x04):
                         id = 0x04
+                        self._sendAck(id, True)
                         self._gotGetOptsCmd(packet, addr)
                     elif packet.matches(0x05, 0x05):
                         id = 0x05
+                        self._sendAck(id, True)
                         self._gotSetOptsCmd(packet, addr)
                     elif packet.matches(0x05, 0x07):
                         id = 0x07
+                        self._sendAck(id, True)
                         self._gotStartCmd(packet, addr)
                     elif packet.matches(0x05, 0x09):
                         id = 0x09
-                        self._sendAck(id)
+                        self._sendAck(id, True)
                         self._gotStopCmd(packet, addr)
                     elif packet.matches(0x05, 0x0B):
                         id = 0x0B
-                        self._sendAck(id)
+                        self._sendAck(id, True)
                         self._upgradeCmd(packet, addr)
                         
         

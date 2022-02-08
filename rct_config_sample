@@ -1,0 +1,13 @@
+DSP_pingMax: 1.5
+DSP_pingMin: 0.5
+DSP_pingSNR: 0.1
+DSP_pingWidth: 27
+GPS_baud: 9600
+GPS_device: /dev/null
+GPS_mode: false
+SDR_centerFreq: 173500000
+SDR_gain: 20.0
+SDR_samplingFreq: 1500000
+SYS_autostart: false
+SYS_outputDir: ../testOutput
+TGT_frequencies: [173964000]

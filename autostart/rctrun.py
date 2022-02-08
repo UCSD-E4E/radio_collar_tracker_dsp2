@@ -11,6 +11,7 @@ import re
 import select
 from radio_collar_tracker_dsp2 import PingFinder
 from enum import Enum, IntEnum
+import yaml
 
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
@@ -23,6 +24,7 @@ stop_threads = False
 
 output_dir = None
 testDir = "../testOutput"
+testGPS = True
 
 class GPS_STATES(IntEnum):
 	get_tty = 0
@@ -59,9 +61,9 @@ class RCT_STATES(Enum):
 
 class RCTRun:
     def __init__(self, tcpport: int, test = False):
-        baud = int(self.get_var('gps_baud'))
-        serialPort = self.get_var('gps_target')
-        self.UIB_Singleton = UIBoard(serialPort, baud)
+        baud = int(self.get_var('GPS_baud'))
+        serialPort = self.get_var('GPS_device')
+        self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         self.cmdListener = None
         self.test = test
         self.tcpport = tcpport
@@ -164,11 +166,15 @@ class RCTRun:
 
         prev_gps = 0
 
+        if testGPS:
+            self.UIB_Singleton.sensorState = GPS_STATES.rdy
+            return
+
         while not GPSInitialized:
             if self.UIB_Singleton.sensorState == GPS_STATES.get_tty:
-                tty_device = self.get_var('gps_target')
+                tty_device = self.get_var('GPS_device')
                 tty_device = self.serialPort
-                tty_baud = self.get_var('gps_baud')
+                tty_baud = self.get_var('GPS_baud')
                 if not test:
                     try:
                         tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
@@ -223,6 +229,7 @@ class RCTRun:
             else: 
                 self.UIB_Singleton.sensorState = GPS_STATES.rdy
                 GPSInitialized = True
+                print("GPS: Initialized")
                 if not test:
                     try:
                         line = tty_stream.readline().decode("utf-8")
@@ -271,7 +278,7 @@ class RCTRun:
                     if uhd_find_dev_retval == 0:
                         devicesFound = True
                         self.UIB_Singleton.sdrState = SDR_INIT_STATES.usrp_probe
-                        print("DevicesFound")
+                        print("SDR: Devices Found")
                     else:
                         time.sleep(1)
                         self.UIB_Singleton.sdrState = SDR_INIT_STATES.wait_recycle
@@ -279,7 +286,7 @@ class RCTRun:
                 if not test:
                     uhd_usrp_probe_retval = subprocess.call(['/usr/local/bin/uhd_usrp_probe', '--args=\"type=b200\"', '--init-only'], stdout=devnull, stderr=devnull)
                     if uhd_usrp_probe_retval == 0:
-                        print("usrp")
+                        print("SDR: USRP Initialized")
                         usrpDeviceInitialized = True
                         initialized = True
                         self.UIB_Singleton.sdrState = SDR_INIT_STATES.rdy
@@ -301,7 +308,7 @@ class RCTRun:
 
         while not outputDirInitialized:
             if not dirNameFound:
-                output_dir = self.get_var('output_dir')
+                output_dir = self.get_var('SYS_outputDir')
                 if output_dir is not None:
                     dirNameFound = True
                     print("OUTPUTDIR_INIT:\trctConfig Directory:")
@@ -335,11 +342,8 @@ class RCTRun:
 
     def get_var(self, var: str):
         var_file = open('/usr/local/etc/rct_config')
-        for line in var_file:
-            if line.split('=')[0].strip() == var:
-                value = line.split('=')[1]
-                return value.strip().strip('"').strip("'")
-        return None
+        config = yaml.safe_load(var_file)
+        return config[var]
         
 
 def main():

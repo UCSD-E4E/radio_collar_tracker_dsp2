@@ -8,7 +8,7 @@ from RCTComms.comms import (rctHeartBeatPacket, rctVehiclePacket, rctPingPacket,
 
 
 class UIBoard:
-    def __init__(self, port="none", baud=115200):
+    def __init__(self, port="none", baud=115200, testMode=False):
         '''
         Store current status
         store most recent GPS and Compass info
@@ -30,6 +30,7 @@ class UIBoard:
 
         self.port = port
         self.baud = baud
+        self.testMode = testMode
 
         self.run = False
         self.listener = threading.Thread(target=self.uibListener)
@@ -37,9 +38,6 @@ class UIBoard:
         #self.sender = threading.Thread(target=self.doHeartbeat)
 
         #self.sender.start()
-
-        #Sensor packet is baked into the c++
-        #No longer baked into c++
 
 
 
@@ -55,31 +53,44 @@ class UIBoard:
         '''
         Continuously listens to uib serial port for Sensor Packets
         '''
-        with serial.Serial(port=self.port, baudrate=self.baud, timeout=2) as ser:
+        if self.testMode:
             while self.run:
-                ret = ser.readline().decode("utf-8")
-                if ret is not None and ret != "":
-                    reading = json.loads(ret)
-                    try:
-                        lat = reading["lat"] / 1e7
-                        lon = reading["lon"] / 1e7
-                        hdg = reading["hdg"]
-                        tme = reading["tme"]
-                        dat = reading["dat"]
+                try:
+                    lat = -117.23679
+                    lon = 32.88534
+                    hdg = 0
+                    date = datetime.datetime.now()
+                    packet = rctVehiclePacket(lat, lon, 0, hdg, date)
+                    self.handleSensorPacket(packet)
+                    self.recentLoc = [lat, lon, 0]
+                except Exception as e:
+                    print(str(e))
+        else:
+            with serial.Serial(port=self.port, baudrate=self.baud, timeout=2) as ser:
+                while self.run:
+                    ret = ser.readline().decode("utf-8")
+                    if ret is not None and ret != "":
+                        reading = json.loads(ret)
+                        try:
+                            lat = reading["lat"] / 1e7
+                            lon = reading["lon"] / 1e7
+                            hdg = reading["hdg"]
+                            tme = reading["tme"]
+                            dat = reading["dat"]
 
-                        yearString = "20" + dat[4:6]
-                        day = datetime.date(int(yearString), int(dat[2:4]), int(dat[0:2]))
-                        time = datetime.time(int(tme[0:2]), int(tme[2:4]), int(tme[4:6]))
-                        date = datetime.datetime.combine(day, time)
+                            yearString = "20" + dat[4:6]
+                            day = datetime.date(int(yearString), int(dat[2:4]), int(dat[0:2]))
+                            time = datetime.time(int(tme[0:2]), int(tme[2:4]), int(tme[4:6]))
+                            date = datetime.datetime.combine(day, time)
 
-                        packet = rctVehiclePacket(lat, lon, 0, hdg, date)
+                            packet = rctVehiclePacket(lat, lon, 0, hdg, date)
 
-                        self.recentLoc = [lat, lon, 0]
+                            self.recentLoc = [lat, lon, 0]
 
-                        self.handleSensorPacket(packet)
+                            self.handleSensorPacket(packet)
 
-                    except Exception as e:
-                        print(str(e))
+                        except Exception as e:
+                            print(str(e))
 
     def sendPing(self, now, amplitude, frequency):
         if self.recentLoc is not None:

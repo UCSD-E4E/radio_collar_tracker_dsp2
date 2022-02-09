@@ -12,6 +12,7 @@ import select
 import subprocess
 import sys
 import glob
+import yaml
 import traceback
 from autostart.UIB_instance import UIBoard
 from enum import IntEnum
@@ -27,124 +28,77 @@ class COMMS_STATES(IntEnum):
 class RCTOpts(object):
     def __init__(self):
         self._configFile = '/usr/local/etc/rct_config'
-        self.options = ['ping_width_ms',
-                'ping_min_snr',
-                'ping_max_len_mult',
-                'ping_min_len_mult',
-                'gain',
-                'gps_mode',
-                'gps_target',
-                'gps_baud',
-                'frequencies',
-                'autostart',
-                'output_dir',
-                'sampling_freq',
-                'center_freq']
-        #self._params = {key:self.get_var(key) for key in self.options}
+        self.options = ['DSP_pingWidth',
+                'DSP_pingMin',
+                'DSP_pingMax',
+                'DSP_pingSNR',
+                'SDR_gain',
+                'GPS_mode',
+                'GPS_device',
+                'GPS_baud',
+                'TGT_frequencies',
+                'SYS_autostart',
+                'SYS_outputDir',
+                'SDR_samplingFreq',
+                'SDR_centerFreq']
         self._params = {}
         self.loadParams()
 
     def get_var(self, var):
         retval = []
         with open(self._configFile) as var_file:
-            for line in var_file:
-                if line.split('=')[0].strip() == var:
-                    retval.append(line.split('=')[1].strip().strip('"').strip("'"))
+            config = yaml.safe_load(var_file)
+            retval= config[var]
         return retval
 
 
     def loadParams(self):
-        #self._params = {key:self._get_var(key) for key in self.options}
         with open(self._configFile) as var_file:
-            for line in var_file:
-                newVar = line.split('=')[0].strip()
-                if newVar in self.options:
-                    self._params[newVar] = line.split('=')[1].strip().strip('"').strip("'")
+            config = yaml.safe_load(var_file)
+            for option in config:
+                self._params[option] = config[option]
 
-    def getOption(self, option):
-        if option == 'TGT_frequencies':
-            return int(self._params["frequencies"])
-        if option == "DSP_pingWidth":
-            return float(self._params['ping_width_ms'] )
-        elif option == "DSP_pingSNR":
-            return float(self._params['ping_min_snr'] )
-        elif option == "DSP_pingMax":
-            return float(self._params['ping_max_len_mult']) 
-        elif option == "DSP_pingMin":
-            return float(self._params['ping_min_len_mult']) 
-        elif option == "GPS_mode":
-            return self._params['gps_mode']
-        elif option == "GPS_device":
-            return self._params['gps_target'] 
-        elif option == "GPS_baud":
-            return int(self._params['gps_baud']) 
-        elif option == "SYS_autostart":
-            return self._params['autostart'] 
-        elif option == "SYS_outputDir":
-            return self._params['output_dir'] 
-        elif option == "SDR_samplingFreq":
-            return int(self._params['sampling_freq']) 
-        elif option == "SDR_centerFreq":
-            return int(self._params['center_freq']) 
-        elif option == "SDR_gain":
-            return float(self._params["gain"]) 
+    def getOption(self, option: str):
+        return self._params[option]
     
 
     def setOption(self, option, param):
         if option == "DSP_pingWidth":
-            self._params['ping_width_ms'] = param
-            assert(isinstance(param, str))
-            test = float(param)
-            assert(test > 0)
+            assert(isinstance(param, float))
+            assert(param > 0)
         elif option == "DSP_pingSNR":
-            self._params['ping_min_snr'] = param
-            assert(isinstance(param, str))
-            test = float(param)
-            assert(test > 0)
+            assert(isinstance(param, float))
+            assert(param > 0)
         elif option == "DSP_pingMax":
-            self._params['ping_max_len_mult'] = param
-            assert(isinstance(param, str))
-            test = float(param)
-            assert(test > 1)
+            assert(isinstance(param, float))
+            assert(param > 1)
         elif option == "DSP_pingMin":
-            self._params['ping_min_len_mult'] = param
             assert(isinstance(param, str))
-            test = float(param)
-            assert(test < 1)
-            assert(test > 0)
+            assert(param < 1)
+            assert(param > 0)
         elif option == "GPS_mode":
-            self._params['gps_mode'] = param
             assert(isinstance(param, str))
             assert(param == 'true' or param == 'false')
         elif option == "GPS_device":
-            self._params['gps_target'] = param
             assert(isinstance(param, str))
         elif option == "GPS_baud":
-            self._params['gps_baud'] = param
             assert(isinstance(param, str))
-            test = int(param)
             assert(param > 0)
-        elif option == "TGT_frequencies":
-            self._params['frequencies'] = param
         elif option == "SYS_autostart":
-            self._params['autostart'] = param
             assert(isinstance(param, str))
             assert(param == 'true' or param == 'false')
         elif option == "SYS_outputDir":
-            self._params['output_dir'] = param
             assert(isinstance(param, str))
         elif option == "SDR_samplingFreq":
-            self._params['sampling_freq'] = param
-            assert(isinstance(param, str))
-            test = int(param)
-            assert(test > 0)
+            assert(isinstance(param, int))
+            assert(param > 0)
         elif option == "SDR_centerFreq":
-            self._params['center_freq'] = param
-            assert(isinstance(param, str))
-            test = int(param)
-            assert(test > 0)
+            assert(isinstance(param, int))
+            assert(param > 0)
         elif option == "SDR_gain":
-            self._params["gain"] = param
+            assert(isinstance(param, float))
+
+        self._params[option] = param
 
     def setOptions(self, options: dict):
         # Error check first before committing
@@ -153,65 +107,56 @@ class RCTOpts(object):
             print(key)
             print(value)
             if key == "DSP_pingWidth":
-                self._params['ping_width_ms'] = value
+                self._params[key] = value
                 assert(isinstance(value, float))
-                test = float(value)
-                assert(test > 0)
             elif key == "DSP_pingSNR":
-                self._params['ping_min_snr'] = value
+                self._params[key] = value
                 assert(isinstance(value, float))
-                test = float(value)
-                assert(test > 0)
+                assert(value > 0)
             elif key == "DSP_pingMax":
-                self._params['ping_max_len_mult'] = value
+                self._params[key] = value
                 assert(isinstance(value, float))
-                test = float(value)
-                assert(test > 1)
+                assert(value > 1)
             elif key == "DSP_pingMin":
-                self._params['ping_min_len_mult'] = value
+                self._params[key] = value
                 assert(isinstance(value, float))
-                test = float(value)
-                assert(test < 1)
-                assert(test > 0)
+                assert(value < 1)
+                assert(value > 0)
             elif key == "GPS_mode":
-                self._params['gps_mode'] = value
+                self._params[key] = value
                 assert(isinstance(value, str))
                 assert(value == 'true' or value == 'false')
             elif key == "GPS_device":
-                self._params['gps_target'] = value
+                self._params[key] = value
                 assert(isinstance(value, str))
             elif key == "GPS_baud":
-                self._params['gps_baud'] = value
+                self._params[key] = value
                 assert(isinstance(value, int))
-                test = int(value)
                 assert(value > 0)
             elif key == "TGT_frequencies":
-                self._params['frequencies'] = value
+                self._params[key] = value
             elif key == "SYS_autostart":
-                self._params['autostart'] = value
-                assert(isinstance(value, int))
+                self._params[key] = value
+                assert(isinstance(value, str))
                 assert(value == 'true' or value == 'false')
             elif key == "SYS_outputDir":
-                self._params['output_dir'] = value
+                self._params[key] = value
                 assert(isinstance(value, str))
             elif key == "SDR_samplingFreq":
-                self._params['sampling_freq'] = value
+                self._params[key] = value
                 assert(isinstance(value, int))
-                test = int(value)
-                assert(test > 0)
+                assert(value > 0)
             elif key == "SDR_centerFreq":
-                self._params['center_freq'] = value
+                self._params[key] = value
                 assert(isinstance(value, int))
-                test = int(value)
-                assert(test > 0)
+                assert(value > 0)
             elif key == "SDR_gain":
-                self._params["gain"] = value
+                self._params[key] = value
 
 
 
     def writeOptions(self):
         backups = glob.glob("/usr/local/etc/*.bak")
-        #backups = glob.glob("*.bak")
         if len(backups) > 0:
             backup_numbers = [os.path.basename(path).split('.')[0].lstrip('/usr/local/etc/rct_config') for path in backups]
             backup_numbers = [int(number) for number in backup_numbers if number != '']
@@ -220,50 +165,15 @@ class RCTOpts(object):
             nextNumber = 1
 
         os.rename('/usr/local/etc/rct_config', '/usr/local/etc/rct_config%d.bak' % nextNumber)
-        #os.rename('rct_config', 'rct_config%d.bak' % nextNumber)
 
         with open(self._configFile, 'w') as var_file:
-            for key, value in list(self._params.items()):
-                if key == "frequencies":
-                    for val in value:
-                        opt = '%s=%s\n' % (key, str(val))
-                else:
-                    opt = '%s=%s\n' % (key, str(value))
-                    print(opt.strip())
-                    var_file.write(opt)
+            yaml.dump(self._params, var_file)
 
     def getAllOptions(self):
         return self._params
 
     def getCommsOptions(self):
-        commsOpts = {}
-        for key in self._params:
-            if key == 'ping_width_ms':
-                commsOpts["DSP_pingWidth"] = float(self._params[key])
-            if key == 'ping_min_snr':
-                commsOpts["DSP_pingSNR"] = float(self._params[key])
-            if key == 'ping_max_len_mult':
-                commsOpts["DSP_pingMax"] = float(self._params[key])
-            if key == 'ping_min_len_mult':
-                commsOpts["DSP_pingMin"] = float(self._params[key])
-            if key == 'gps_mode':
-                commsOpts["GPS_mode"] = self._params[key]
-            if key == 'gps_target':
-                commsOpts["GPS_device"] = self._params[key]
-            if key == 'gps_baud':
-                commsOpts["GPS_baud"] = int(self._params[key])
-            if key == 'autostart':
-                commsOpts["SYS_autostart"] = self._params[key]
-            if key == 'output_dir':
-                commsOpts["SYS_outputDir"] = self._params[key]
-            if key == 'sampling_freq':
-                commsOpts["SDR_samplingFreq"] = int(self._params[key])
-            if key == 'center_freq':
-                commsOpts["SDR_centerFreq"] = int(self._params[key])
-            if key == 'gain':
-                commsOpts['SDR_gain'] = float(self._params[key])
-
-        return commsOpts
+        return self._params
 
 
 class CommandListener(object):
@@ -382,6 +292,7 @@ class CommandListener(object):
             self.UIBoard.switch = 1
             self.UIBoard.run = True
             self.UIBoard.listener.start()
+            self._sendAck(0x07, True)
             print("Set start flag")
             self._sendAck(packet._pid, True)
         else:
@@ -400,6 +311,7 @@ class CommandListener(object):
         self.startFlag = False
         self.UIBoard.switch = 0
         self.UIBoard.stop()
+        self._sendAck(0x09, True)
         try:
             self.ping_file.close()
         except Exception as e:
@@ -423,6 +335,7 @@ class CommandListener(object):
         freqs = self.options.getOption('TGT_frequencies')
         packet = rctFrequenciesPacket(freqs)
         msg = packet
+        self._sendAck(0x02, True)
         self.port.sendToGCS(msg)
 
     def _gotGetOptsCmd(self, packet: rctGETOPTCommand, addr):
@@ -431,6 +344,7 @@ class CommandListener(object):
         print("Get Comms OPts: ", opts)
         
         msg = rctOptionsPacket(packet.scope, **opts)
+        self._sendAck(0x04, True)
         self.port.sendToGCS(msg)
 
 
@@ -451,6 +365,7 @@ class CommandListener(object):
         self.options.setOptions(opts)
         options = self.options.getCommsOptions()
         msg = rctOptionsPacket(packet.scope, **options)
+        self._sendAck(0x05, True)
         self.port.sendToGCS(msg)
         self._sendAck(0x05, True)
 
@@ -550,7 +465,6 @@ class CommandListener(object):
         now = datetime.datetime.now()
         packet = rctACKCommand(id, result, now)
         self.port.sendToGCS(packet)
-
                         
         
 

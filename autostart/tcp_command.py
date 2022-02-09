@@ -13,7 +13,7 @@ import subprocess
 import sys
 import glob
 import traceback
-from UIB_instance import UIBoard
+from autostart.UIB_instance import UIBoard
 from enum import IntEnum
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
     rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
@@ -63,7 +63,7 @@ class RCTOpts(object):
 
     def getOption(self, option):
         if option == 'TGT_frequencies':
-            return [int(self._params["frequencies"])]
+            return int(self._params["frequencies"])
         if option == "DSP_pingWidth":
             return float(self._params['ping_width_ms'] )
         elif option == "DSP_pingSNR":
@@ -154,22 +154,22 @@ class RCTOpts(object):
             print(value)
             if key == "DSP_pingWidth":
                 self._params['ping_width_ms'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, float))
                 test = float(value)
                 assert(test > 0)
             elif key == "DSP_pingSNR":
                 self._params['ping_min_snr'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, float))
                 test = float(value)
                 assert(test > 0)
             elif key == "DSP_pingMax":
                 self._params['ping_max_len_mult'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, float))
                 test = float(value)
                 assert(test > 1)
             elif key == "DSP_pingMin":
                 self._params['ping_min_len_mult'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, float))
                 test = float(value)
                 assert(test < 1)
                 assert(test > 0)
@@ -182,26 +182,26 @@ class RCTOpts(object):
                 assert(isinstance(value, str))
             elif key == "GPS_baud":
                 self._params['gps_baud'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, int))
                 test = int(value)
                 assert(value > 0)
             elif key == "TGT_frequencies":
                 self._params['frequencies'] = value
             elif key == "SYS_autostart":
                 self._params['autostart'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, int))
                 assert(value == 'true' or value == 'false')
             elif key == "SYS_outputDir":
                 self._params['output_dir'] = value
                 assert(isinstance(value, str))
             elif key == "SDR_samplingFreq":
                 self._params['sampling_freq'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, int))
                 test = int(value)
                 assert(test > 0)
             elif key == "SDR_centerFreq":
                 self._params['center_freq'] = value
-                assert(isinstance(value, str))
+                assert(isinstance(value, int))
                 test = int(value)
                 assert(test > 0)
             elif key == "SDR_gain":
@@ -282,7 +282,6 @@ class CommandListener(object):
         self.state = COMMS_STATES.connected
         self.sender = threading.Thread(target=self._sender)
         self.reconnect = threading.Thread(target=self._reconnectComms)
-        #self.receiver = threading.Thread(target=self._listener)
         self.startFlag = False
         self.UIBoard = UIboard
         self.UIBoard.switch = 0
@@ -294,12 +293,10 @@ class CommandListener(object):
 
         self.port.start()
         self.sender.start()
-        #self.receiver.start()
 
     def __del__(self):
         self._run = False
         self.sender.join()
-        #self.receiver.join()
         self.port.stop()
         del self.port
         self.UIBoard.run = False
@@ -386,6 +383,7 @@ class CommandListener(object):
             self.UIBoard.run = True
             self.UIBoard.listener.start()
             print("Set start flag")
+            self._sendAck(packet._pid, True)
         else:
             if not (self.UIBoard.storageState == 4):
                 print("Storage not ready!")
@@ -396,6 +394,7 @@ class CommandListener(object):
             if not (self.UIBoard.sdrState == 3):
                 print("SDR not ready!")
                 print(self.UIBoard.sdrState)
+            self._sendAck(packet._pid, True)
 
     def _gotStopCmd(self, packet: rctSTOPCommand, addr):
         self.startFlag = False
@@ -406,6 +405,7 @@ class CommandListener(object):
         except Exception as e:
             print(e)
         self.ping_file = None
+        self._sendAck(packet._pid, True)
 
     def _gotSetFCmd(self, packet: rctSETFCommand, addr):
         if packet.frequencies is None:
@@ -452,6 +452,7 @@ class CommandListener(object):
         options = self.options.getCommsOptions()
         msg = rctOptionsPacket(packet.scope, **options)
         self.port.sendToGCS(msg)
+        self._sendAck(0x05, True)
 
     def _upgradeCmd(self, packet: rctUPGRADECommand, addr):
         #Upgrade Ready
@@ -545,75 +546,11 @@ class CommandListener(object):
             print(str(e))
             self.port.sendToGCS(msg)
 
-    def _processCommand(self, packet, addr):
-        commands = {
-            'test': lambda: None,
-            'start': self._gotStartCmd,
-            'stop': self._gotStopCmd,
-            'setF': self._gotSetFCmd,
-            'getF': self._gotGetFCmd,
-            'getOpts': self._gotGetOptsCmd,
-            'setOpts': self._gotSetOptsCmd,
-            'writeOpts': self._gotWriteOptsCmd,
-            'upgrade': self._upgradeCmd
-        }
-
-        print('Got action: %s' % (packet['action']))
-
-        try:
-            commands[packet['action']](packet, addr)
-        except Exception as e:
-            print(e)
-            packet = rctExceptionPacket(str(e), "   ")
-            msg = packet
-            print(str(e))
-            self.port.sendToGCS(msg)
-
     def _sendAck(self, id: int, result: bool):
         now = datetime.datetime.now()
         packet = rctACKCommand(id, result, now)
         self.port.sendToGCS(packet)
 
-    def _listener(self):
-        
-        while self._run:
-            ready = select.select([self.sock], [], [], 1)
-            if ready[0]:
-                data, addr = self.port.receive(1024)
-                
-                packets = self.factory.parseBytes(data)
-                id = None
-                if len(packets) > 0 and (self.state == COMMS_STATES.disconnected):
-                    self.state = COMMS_STATES.connected
-                for packet in packets:
-                    if packet.matches(0x05, 0x02):
-                        id = 0x02
-                        self._sendAck(id, True)
-                        self._gotGetFCmd(packet, addr)
-                    elif packet.matches(0x05, 0x03):
-                        id = 0x03
-                        self._sendAck(id, True)
-                        self._gotSetFCmd(packet, addr)
-                    elif packet.matches(0x05, 0x04):
-                        id = 0x04
-                        self._sendAck(id, True)
-                        self._gotGetOptsCmd(packet, addr)
-                    elif packet.matches(0x05, 0x05):
-                        id = 0x05
-                        self._sendAck(id, True)
-                        self._gotSetOptsCmd(packet, addr)
-                    elif packet.matches(0x05, 0x07):
-                        id = 0x07
-                        self._sendAck(id, True)
-                        self._gotStartCmd(packet, addr)
-                    elif packet.matches(0x05, 0x09):
-                        id = 0x09
-                        self._sendAck(id, True)
-                        self._gotStopCmd(packet, addr)
-                    elif packet.matches(0x05, 0x0B):
-                        id = 0x0B
-                        self._sendAck(id, True)
-                        self._upgradeCmd(packet, addr)
                         
         
 

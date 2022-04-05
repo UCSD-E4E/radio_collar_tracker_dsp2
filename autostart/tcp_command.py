@@ -16,7 +16,7 @@ import yaml
 import traceback
 from UIB_instance import UIBoard
 from enum import IntEnum
-from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
+from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket,
     rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
     rctSTOPCommand, rctACKCommand, EVENTS)
 from RCTComms.transport import RCTTCPClient, RCTTCPServer
@@ -60,7 +60,7 @@ class RCTOpts(object):
 
     def getOption(self, option: str):
         return self._params[option]
-    
+
 
     def setOption(self, option, param):
         if option == "DSP_pingWidth":
@@ -180,7 +180,7 @@ class CommandListener(object):
     """docstring for CommandListener"""
     def __init__(self, UIboard: UIBoard, port):
         super(CommandListener, self).__init__()
-        self.sock = RCTTCPServer(port)
+        self.sock = RCTTCPClient(port)
         self.port = mavComms(self.sock)
         self.portAddr = port
 
@@ -188,7 +188,7 @@ class CommandListener(object):
         self.num = None
         self.newRun = False
         self._run = True
-        
+
         self.state = COMMS_STATES.connected
         self.sender = threading.Thread(target=self._sender)
         self.reconnect = threading.Thread(target=self._reconnectComms)
@@ -245,8 +245,8 @@ class CommandListener(object):
             try:
                 now = datetime.datetime.now()
                 if (now - prevTime).total_seconds() > 1:
-                    heartbeatPacket = rctHeartBeatPacket(self.UIBoard.systemState, 
-                            self.UIBoard.sdrState, self.UIBoard.sensorState, 
+                    heartbeatPacket = rctHeartBeatPacket(self.UIBoard.systemState,
+                            self.UIBoard.sdrState, self.UIBoard.sensorState,
                             self.UIBoard.storageState, self.UIBoard.switch, now)
 
                     msg = heartbeatPacket
@@ -269,7 +269,7 @@ class CommandListener(object):
             except Exception as e:
                 print("Early Fail!")
                 print(e)
-                    
+
                 time.sleep(1)
                 continue
 
@@ -340,7 +340,7 @@ class CommandListener(object):
         opts = self.options.getCommsOptions()
 
         print("Get Comms OPts: ", opts)
-        
+
         msg = rctOptionsPacket(packet.scope, **opts)
         self._sendAck(0x04, True)
         self.port.sendToGCS(msg)
@@ -463,8 +463,8 @@ class CommandListener(object):
         now = datetime.datetime.now()
         packet = rctACKCommand(id, result, now)
         self.port.sendToGCS(packet)
-                        
-        
+
+
 
     def setup(self):
         self.port.registerCallback(

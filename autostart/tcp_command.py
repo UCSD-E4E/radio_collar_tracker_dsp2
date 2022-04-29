@@ -178,9 +178,9 @@ class RCTOpts(object):
 
 class CommandListener(object):
     """docstring for CommandListener"""
-    def __init__(self, UIboard: UIBoard, port):
+    def __init__(self, UIboard: UIBoard, port: int, addr: str):
         super(CommandListener, self).__init__()
-        self.sock = RCTTCPClient(port)
+        self.sock = RCTTCPClient(port, addr)
         self.port = mavComms(self.sock)
         self.portAddr = port
 

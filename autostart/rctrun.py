@@ -63,6 +63,7 @@ class RCTRun:
     def __init__(self, tcpport: int, test = False):
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
+        self.gcsIP = self.get_var('GCS_IP')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         self.cmdListener = None
         self.test = test
@@ -91,7 +92,7 @@ class RCTRun:
 
     def initComms(self):
         if self.cmdListener is None:
-            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport, self.gcsIP)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
 

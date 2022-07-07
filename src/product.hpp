@@ -22,5 +22,5 @@
  * Must be one of SDR_TYPE_USRP, SDR_TYPE_AIRSPY, SDR_TYPE_HACKRF
  * 
  */
-#define USE_SDR_TYPE    SDR_TYPE_USRP
+#define USE_SDR_TYPE    SDR_TYPE_AIRSPY
 #endif

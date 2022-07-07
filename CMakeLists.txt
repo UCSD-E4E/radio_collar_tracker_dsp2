@@ -4,7 +4,7 @@ add_subdirectory(extern/pybind11)
 
 pybind11_add_module(radio_collar_tracker_dsp2
     src/sdr_record.cpp
-    src/sdr.cpp
+    src/usrp.cpp
     src/iq_data.cpp
     src/dspv3.cpp
     src/sdr_test.cpp

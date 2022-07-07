@@ -8,7 +8,8 @@ pybind11_add_module(radio_collar_tracker_dsp2
     src/iq_data.cpp
     src/dspv3.cpp
     src/sdr_test.cpp
-    src/ping_sink.cpp)
+    src/ping_sink.cpp
+    src/airspy.cpp)
 
 find_package(Boost QUIET REQUIRED COMPONENTS program_options system thread)
 
@@ -21,7 +22,8 @@ target_link_libraries(radio_collar_tracker_dsp2
         m
         Boost::system
         Boost::thread
-        pthread)
+        pthread
+        airspy)
 
 target_compile_definitions(radio_collar_tracker_dsp2
                            PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})

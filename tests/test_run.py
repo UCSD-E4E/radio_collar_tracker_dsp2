@@ -4,7 +4,7 @@ import datetime as dt
 import glob
 import os
 
-SDR_ENABLED = False
+SDR_ENABLED = True
 GPS_ENABLED = True
 USB_ENABLED = True
 
@@ -20,8 +20,8 @@ def phony_callback(now: dt.datetime, amplitude:float, frequency: int):
 def test_run():
     RUN_TIME = 8
     ping_finder = PingFinder()
-    ping_finder.gain = 22.0
-    ping_finder.sampling_rate = 2000000
+    ping_finder.gain = 14.0
+    ping_finder.sampling_rate = 2500000
     ping_finder.center_frequency = 173500000
     ping_finder.run_num = 1
     ping_finder.enable_test_data = False

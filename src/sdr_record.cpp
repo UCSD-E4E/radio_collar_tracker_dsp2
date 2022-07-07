@@ -8,6 +8,7 @@
 #include "sdr.hpp"
 #include "sdr_test.hpp"
 #include "dspv3.hpp"
+#include "product.hpp"
 
 #include <chrono>
 #include <thread>
@@ -32,7 +33,13 @@ void RCT::PingFinder::start(void)
     }
     else
     {
+        #if USE_SDR_TYPE == SDR_TYPE_USRP
         sdr = new RCT::USRP(gain, sampling_rate, center_frequency);
+        #elif USE_SDR_TYPE == SDR_TYPE_AIRSPY
+        #elif USE_SDR_TYPE == SDR_TYPE_HACKRF
+        #else
+        #error Unknown SDR selected
+        #endif
     }
     if(nullptr == sdr)
     {

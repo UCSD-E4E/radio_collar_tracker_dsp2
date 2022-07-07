@@ -71,7 +71,10 @@
 			"typeindex": "cpp",
 			"typeinfo": "cpp",
 			"valarray": "cpp"
-		}
+		},
+		"editor.rulers": [
+		80
+		]
 	},
 	"extensions": {
 		"recommendations": [

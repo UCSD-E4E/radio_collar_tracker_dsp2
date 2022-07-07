@@ -32,7 +32,7 @@ void RCT::PingFinder::start(void)
     }
     else
     {
-        sdr = new RCT::SDR(gain, sampling_rate, center_frequency);
+        sdr = new RCT::USRP(gain, sampling_rate, center_frequency);
     }
     if(nullptr == sdr)
     {

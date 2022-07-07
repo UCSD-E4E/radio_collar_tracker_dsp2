@@ -15,7 +15,7 @@ namespace RCT{
 	 * Concrete SDR class for interfacing with the USRP B200mini for the Radio
 	 * Telemetry Tracker.
 	 */
-	class SDR final : public AbstractSDR{
+	class USRP final : public AbstractSDR{
 	private:
 		/**
 		 * USRP object
@@ -124,7 +124,7 @@ namespace RCT{
 		/**
 		 * Default constructor
 		 */
-		SDR();
+		USRP();
 	public:
 		/**
 		 * Constructs this SDR with the specified parameters.
@@ -132,12 +132,12 @@ namespace RCT{
 		 * @param rate	Sampling Frequency in Hz
 		 * @param freq	Center Frequency in Hz
 		 */
-		SDR(double gain, long int rate, long int freq);
+		USRP(double gain, long int rate, long int freq);
 
 		/**
 		 * Deconstructor - this correctly deinitializes the SDR.
 		 */
-		~SDR();
+		~USRP();
 
 		/**
 		 * Sets the transfer buffer size.

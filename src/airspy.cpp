@@ -3,7 +3,16 @@
 #include <syslog.h>
 #include <iostream>
 
+#include <sys/time.h>
+
 namespace RCT{
+    int rx_callback(airspy_transfer_t* pTransfer)
+    {
+        AirSpy* ctx = (AirSpy*) pTransfer->ctx;
+        ctx->airspy_rx_callback(pTransfer);
+        return 0;
+    }
+
     const char* airspy_strerr(int err)
     {
         switch(err)
@@ -36,7 +45,10 @@ namespace RCT{
     }
 
     AirSpy::AirSpy(double gain, uint64_t rate, uint64_t freq) :
-        device(0)
+        device(0),
+        _run(false),
+        total_rx_samples(0),
+        sampling_rate(rate)
     {   
         int retval;
         uint32_t n_samplerates;
@@ -105,21 +117,83 @@ namespace RCT{
     }
 
     AirSpy::~AirSpy(){
+        int retval;
+        retval = airspy_close(this->device);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Unable to close airspy: %s\n", airspy_strerr(retval));
+        }
         airspy_exit();
     }
 
     void AirSpy::startStreaming(std::queue<std::complex<double>*>& queue, 
         std::mutex& mutex, std::condition_variable& cond_var)
     {
-        
+        int retval;
+		struct timeval starttime;
+
+        this->output_queue = &queue;
+        this->output_mutex = &mutex;
+        this->output_var = &cond_var;
+
+        retval = airspy_set_sample_type(this->device, AIRSPY_SAMPLE_FLOAT32_IQ);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Failed to set sample type to F32 IQ: %s\n", airspy_strerr(retval));
+            throw(std::runtime_error("Failed to set sample type to F32"));
+        }
+
+        gettimeofday(&starttime, NULL);
+        retval = airspy_start_rx(this->device, RCT::rx_callback, this);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Failed to start receive: %s\n", airspy_strerr(retval));
+            throw(std::runtime_error("Failed to start receive"));
+        }
+        _start_ms = starttime.tv_sec * 1e3 + starttime.tv_usec * 1e-3;
     }
 
     void AirSpy::stopStreaming()
     {
+        int retval;
 
+        retval = airspy_stop_rx(this->device);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Failed to stop rx: %s\n", airspy_strerr(retval));
+            throw(std::runtime_error("Failed to stop rx"));
+        }
+
+        std::cout << "SDR Received " << this->total_rx_samples << " samples, " 
+            << (double)this->total_rx_samples / this->sampling_rate 
+            << " seconds of data" << std::endl;
     }
 
     const size_t AirSpy::getStartTime_ms() const{
-        return 0;
+        return this->_start_ms;
+    }
+
+
+    void AirSpy::airspy_rx_callback(airspy_transfer_t* pTransfer)
+    {
+        size_t nBytesReceived;
+        float* pRxBuffer;
+
+        nBytesReceived = pTransfer->sample_count * (sizeof(int16_t)) * 2;
+        pRxBuffer = (float*) pTransfer->samples;
+        
+        this->total_rx_samples += pTransfer->sample_count;
+
+        std::complex<double>* raw_buffer = new std::complex<double>[pTransfer->sample_count];
+        
+        for(size_t idx = 0; idx < pTransfer->sample_count; idx++)
+        {
+            raw_buffer[idx] = std::complex<double>(pRxBuffer[idx * 2], pRxBuffer[idx * 2 + 1]);
+        }
+
+        std::unique_lock<std::mutex> guard(*this->output_mutex);
+        this->output_queue->push(raw_buffer);
+        guard.unlock();
+        output_var->notify_all();
     }
 }

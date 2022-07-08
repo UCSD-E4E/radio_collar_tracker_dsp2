@@ -4,13 +4,53 @@
 #include "AbstractSDR.hpp"
 
 #include <cstdint>
+#include <thread>
 
 #include <libairspy/airspy.h>
 
 namespace RCT{
     class AirSpy final : public AbstractSDR{
     private:
+        /**
+         * @brief AirSpy device handle
+         * 
+         */
         struct airspy_device* device;
+
+        /**
+         * @brief Output Queue
+         * 
+         */
+		std::queue<std::complex<double>*>* output_queue;
+        
+        /**
+         * @brief Output queue mutex
+         * 
+         */
+		std::mutex* output_mutex;
+
+        /**
+         * @brief Output queue condition variable
+         * 
+         */
+		std::condition_variable* output_var;
+
+        /**
+         * @brief Run flag
+         * 
+         */
+        volatile bool _run;
+
+        /**
+         * @brief Streamer thread handle
+         * 
+         */
+		std::thread* stream_thread;
+
+		std::size_t _start_ms;
+
+        uint64_t sampling_rate;
+
     protected:
         /**
          * @brief Construct a new Air Spy object
@@ -18,6 +58,8 @@ namespace RCT{
          * Default constructor
          */
         AirSpy();
+
+        size_t total_rx_samples;
     public:
         /**
          * @brief Construct a new Air Spy object with the specified parameters
@@ -76,6 +118,7 @@ namespace RCT{
          *                      the Unix epoch.
          */
         const size_t getStartTime_ms() const;
+        void airspy_rx_callback(airspy_transfer_t* pTransfer);
     };
 }
 #endif

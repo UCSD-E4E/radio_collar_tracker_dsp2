@@ -2,7 +2,9 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#if USE_PYBIND11 == 1
 #include <pybind11/chrono.h>
+#endif
 
 void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
     std::condition_variable &var)
@@ -18,6 +20,7 @@ void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
         {
             RCT::PingPtr pingPtr;
             pingPtr = queue.front();
+            #if USE_PYBIND11 == 1
             for(auto &cb : callbacks)
             {
                 std::chrono::system_clock::time_point now{std::chrono::milliseconds{pingPtr->time_ms}};
@@ -27,6 +30,7 @@ void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
                 cb(now, amplitude, frequency);
                 pybind11::gil_scoped_release release;
             }
+            #endif
             queue.pop();
         }
     }
@@ -59,7 +63,9 @@ RCT::PingSink::~PingSink(void)
 
 }
 
+#if USE_PYBIND11 == 1
 void RCT::PingSink::register_callback(pybind11::object &fn)
 {
     callbacks.push_back(fn);
 }
+#endif

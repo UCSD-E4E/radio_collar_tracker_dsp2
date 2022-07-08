@@ -12,9 +12,11 @@
 #include "ping.hpp"
 #include <thread>
 #include <functional>
+#if USE_PYBIND11 == 1
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl_bind.h>
+#endif
 #include "ping_sink.hpp"
 
 namespace RCT{
@@ -80,7 +82,9 @@ namespace RCT{
 
 
 		void _testThread(void);
+		#if USE_PYBIND11 == 1
 		std::vector<pybind11::object> callbacks;
+		#endif
 
     public:
         double gain;
@@ -98,7 +102,9 @@ namespace RCT{
 
         PingFinder();
 
+		#if USE_PYBIND11 == 1
 		void register_callback(const pybind11::object &fn);
+		#endif
         void start(void);
         void stop(void);
 

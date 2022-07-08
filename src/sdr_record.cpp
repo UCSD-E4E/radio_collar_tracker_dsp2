@@ -1,7 +1,9 @@
+#if USE_PYBIND11 == 1
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include <pybind11/chrono.h>
+#endif
 #include "sdr_record.hpp"
 #include <cstdio>
 #include <syslog.h>
@@ -12,11 +14,14 @@
 
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
+#if USE_PYBIND11 == 1
 namespace py = pybind11;
+#endif
 
 RCT::PingFinder::PingFinder(): gain(-1), sampling_rate(0), center_frequency(0), 
     run_num(0), output_dir(""), test_data_path(""), ping_width_ms(36), ping_min_snr(4),
@@ -76,10 +81,12 @@ void RCT::PingFinder::start(void)
         delete(sdr);
         throw std::runtime_error("Unable to instantiate Ping Sink instance");
     }
+    #if USE_PYBIND11 == 1
     for(auto &fn : callbacks)
     {
         sink->register_callback(fn);
     }
+    #endif
     
     dsp->startProcessing(sdr_queue, sdr_queue_mutex, sdr_var, ping_queue, 
         ping_queue_mutex, ping_var);
@@ -90,10 +97,12 @@ void RCT::PingFinder::start(void)
     // test_thread = new std::thread(&RCT::PingFinder::_testThread, this);
 }
 
+#if USE_PYBIND11 == 1
 void RCT::PingFinder::register_callback(const pybind11::object &fn)
 {
     callbacks.push_back(fn);
 }
+#endif
 
 void RCT::PingFinder::_testThread(void)
 {
@@ -104,12 +113,14 @@ void RCT::PingFinder::_testThread(void)
 
     }
     std::cout << "stopping" << std::endl;
+    #if USE_PYBIND11 == 1
     for(auto &it: callbacks)
     {
         std::cout << "Calling " << std::endl;
         (it)(std::chrono::system_clock::now(), (double) 0.00, (std::uint64_t) 1234);
         std::cout << "Finished Calling " << std::endl;
     }
+    #endif
 }
 
 void RCT::PingFinder::stop(void)
@@ -142,13 +153,17 @@ void RCT::PingFinder::stop(void)
     delete(sdr);
     sdr = nullptr;
     
+    #if USE_PYBIND11 == 1
     callbacks.clear();
+    #endif
 }
 
 std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)
 {
     return std::unique_ptr<RCT::PingFinder>(new PingFinder());
 }
+
+#if USE_PYBIND11 == 1
 PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
     auto pf = py::class_<RCT::PingFinder>(m, "PingFinder", "Ping Finder class. "
         " This class processes SDR data to detect pings and return them via "
@@ -206,3 +221,4 @@ PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
     m.attr("__version__") = "dev";
 #endif
 }
+#endif

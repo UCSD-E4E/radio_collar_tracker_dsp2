@@ -119,6 +119,14 @@ namespace RCT{
          */
         const size_t getStartTime_ms() const;
         void airspy_rx_callback(airspy_transfer_t* pTransfer);
+
+        /**
+		 * @brief Receive buffer size.
+		 * 
+		 * This is the size of data that is placed into each entry in the output
+		 * queue.
+		 */
+		std::size_t getRxBufferSize(void);
     };
 }
 #endif

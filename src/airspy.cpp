@@ -196,4 +196,9 @@ namespace RCT{
         guard.unlock();
         output_var->notify_all();
     }
+
+    std::size_t AirSpy::getRxBufferSize(void)
+    {
+        return 65536;
+    }
 }

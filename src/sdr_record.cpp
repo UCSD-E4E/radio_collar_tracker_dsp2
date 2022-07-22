@@ -58,7 +58,8 @@ void RCT::PingFinder::start(void)
                           ping_width_ms,
                           ping_min_snr,
                           ping_max_len_mult,
-                          ping_min_len_mult};
+                          ping_min_len_mult,
+                          sdr->getRxBufferSize()};
     if(nullptr == dsp)
     {
         delete(sdr);

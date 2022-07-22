@@ -49,7 +49,8 @@ namespace RCT{
 			const std::size_t width_ms,
 			const double snr,
 			const double max_len_threshold,
-			const double min_len_threshold);
+			const double min_len_threshold,
+			const std::size_t input_block_size);
 
 		/**
 		 * Destructor for this DSP class.  This destructor will not deallocate
@@ -280,7 +281,7 @@ namespace RCT{
 		/**
 		 * Number of receive frames per file, driven by DSP_V3::SAMPLES_PER_FILE
 		 */
-		const std::size_t FRAMES_PER_FILE = SAMPLES_PER_FILE / AbstractSDR::rx_buffer_size;
+		const std::size_t FRAMES_PER_FILE;
 
 		/**
 		 * Determines the maxima of the provided signal, stored in a circular
@@ -413,6 +414,14 @@ namespace RCT{
 		 * Input signal center frequency.
 		 */
 		const std::size_t c_freq;
+
+		/**
+		 * @brief Input block size
+		 * 
+		 * This is the size of data block in samples that should be expected.
+		 * 
+		 */
+		const std::size_t input_block_size;
 	};
 }
 #endif

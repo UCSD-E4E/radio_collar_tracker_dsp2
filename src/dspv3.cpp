@@ -28,11 +28,14 @@ namespace RCT{
 		const std::size_t width_ms,
 		const double snr,
 		const double max_len_threshold,
-		const double min_len_threshold) : 
+		const double min_len_threshold,
+		const std::size_t input_block_size) : 
 	target_freqs(target_freqs),
 	nFreqs(target_freqs.size()),
 	s_freq{sampling_freq},
-	c_freq{center_freq}{
+	c_freq{center_freq},
+	input_block_size(input_block_size),
+	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size){
 
 		ping_width_ms = width_ms;
 		std::cout << "Constructing DSP with width of " << ping_width_ms << " ms" << std::endl;
@@ -460,6 +463,8 @@ namespace RCT{
 		std::size_t buffer_counter = 0;
 		char fname[1024];
 		std::ofstream data_str;
+		std::complex<double>* leftoverData = new std::complex<double>[this->input_block_size];
+		std::size_t leftoverCount = 0;
 
 
 		if(!_output_dir.empty()){
@@ -476,7 +481,7 @@ namespace RCT{
 			(*integrator)[i] = 0;
 		}
 
-		int16_t* int_buf = new int16_t[2 * AbstractSDR::rx_buffer_size];
+		int16_t* int_buf = new int16_t[2 * this->input_block_size];
 		#ifdef DEBUG
 		std::ofstream _ostr1{"unpack_in.log"};
 		#endif
@@ -493,50 +498,54 @@ namespace RCT{
 				i_q.pop();
 				buffer_counter++;
 				inputLock.unlock();
+				std::size_t dataIdx = 0;
 
-				if(integrate_counter >= int_factor && nFreqs > 0){
-					// push integrator to queue
-					std::unique_lock<std::mutex> cLock(_c_m);
-					_c_q.push(integrator);
-					cLock.unlock();
-					_c_v.notify_all();
-					integrator.reset(new std::vector<double>());
-					integrator->resize(nFreqs);
-					for(size_t i = 0; i < nFreqs; i++){
-						(*integrator)[i] = 0;
+				for(dataIdx; dataIdx < this->input_block_size; dataIdx += FFT_LEN)
+				{
+					if(integrate_counter >= int_factor && nFreqs > 0){
+						// push integrator to queue
+						std::unique_lock<std::mutex> cLock(_c_m);
+						_c_q.push(integrator);
+						cLock.unlock();
+						_c_v.notify_all();
+						integrator.reset(new std::vector<double>());
+						integrator->resize(nFreqs);
+						for(size_t i = 0; i < nFreqs; i++){
+							(*integrator)[i] = 0;
+						}
+						integrate_counter = 0;
 					}
-					integrate_counter = 0;
-				}
-				integrate_counter += 1;
-				sample_counter += FFT_LEN;
+					integrate_counter += 1;
+					sample_counter += FFT_LEN;
 
-				// #ifdef DEBUG
-				// for(std::size_t i = 0; i < FFT_LEN; i++){
-				// 	_ostr1 << dataObj[i].real();
-				// 	if(dataObj[i].imag() >= 0){
-				// 		_ostr1 << '+';
-				// 	}
-				// 	_ostr1 << dataObj[i].imag() << "i" << std::endl;
-				// }
-				// #endif
 
-				for(size_t i = 0; i < FFT_LEN; i++){
-					_unpack_fft_in[i][0] = dataObj[i].real();
-					_unpack_fft_in[i][1] = dataObj[i].imag();
-				}
-				fftw_execute(_unpack_fft_plan);
-				fft_counter++;
-				for(size_t i = 0; i < nFreqs; i++){
-					(*integrator)[i] += pow(_unpack_fft_out[target_bins[i]]);
-				}
+					// #ifdef DEBUG
+					// for(std::size_t i = 0; i < FFT_LEN; i++){
+					// 	_ostr1 << dataObj[dataIdx + i].real();
+					// 	if(dataObj[dataIdx + i].imag() >= 0){
+					// 		_ostr1 << '+';
+					// 	}
+					// 	_ostr1 << dataObj[i].imag() << "i" << std::endl;
+					// }
+					// #endif
 
-				
+					for(size_t i = 0; i < FFT_LEN; i++){
+						_unpack_fft_in[i][0] = dataObj[dataIdx + i].real();
+						_unpack_fft_in[i][1] = dataObj[dataIdx + i].imag();
+					}
+					fftw_execute(_unpack_fft_plan);
+					fft_counter++;
+					for(size_t i = 0; i < nFreqs; i++){
+						(*integrator)[i] += pow(_unpack_fft_out[target_bins[i]]);
+					}
+
+				}
 				if(!_output_dir.empty()){
-					for(std::size_t i = 0; i < AbstractSDR::rx_buffer_size; i++){
+					for(std::size_t i = 0; i < this->input_block_size; i++){
 						int_buf[2*i] = dataObj[i].real() * INT16_MAX;
 						int_buf[2*i + 1] = dataObj[i].imag() * INT16_MAX;
 					}
-					data_str.write((char*)int_buf, AbstractSDR::rx_buffer_size * 2 * sizeof(int16_t));
+					data_str.write((char*)int_buf, this->input_block_size * 2 * sizeof(int16_t));
 					data_str.flush();
 					if(frame_counter++ == FRAMES_PER_FILE){
 						write_counter += data_str.tellp();
@@ -549,6 +558,11 @@ namespace RCT{
 						frame_counter = 0;
 					}
 				}
+				// Handle leftover data
+				for(dataIdx; dataIdx < this->input_block_size; dataIdx++)
+				{
+					std::cout << "Leftover data in pack!" << std::endl;
+				}
 				delete[] dataObj;
 			}
 
@@ -560,6 +574,7 @@ namespace RCT{
 		std::cout << "Unpack ran " << fft_counter << " ffts" << std::endl;
 		std::cout << "Unpack wrote " << write_counter / 1024 / 1024 << " MB, estimated " << (double)write_counter / 4 / s_freq << " seconds of data" << std::endl;
 		delete[] int_buf;
+		delete[] leftoverData;
 		#ifdef DEBUG
 		_ostr1.close();
 		#endif

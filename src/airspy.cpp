@@ -100,11 +100,27 @@ namespace RCT{
         }
 
         // set the RF gain
+        if(gain > 14 || gain < 0)
+        {
+            throw std::runtime_error("Unsupported gain: 0 < gain < 14");
+        }
         retval = airspy_set_lna_gain(device, gain);
         if(AIRSPY_SUCCESS != retval)
         {
             syslog(LOG_ERR, "Unable to set RF gain: %s\n", airspy_strerr(retval));
             throw std::runtime_error("Failed to set RF gain");
+        }
+        retval = airspy_set_mixer_gain(device, 15);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Unable to set Mixer Gain: %s\n", airspy_strerr(retval));
+            throw std::runtime_error("Failed to set mixer gain");
+        }
+        retval = airspy_set_vga_gain(device, 15);
+        if(AIRSPY_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Unable to set Mixer Gain: %s\n", airspy_strerr(retval));
+            throw std::runtime_error("Failed to set mixer gain");
         }
 
         // Set the center frequency

@@ -127,6 +127,11 @@ namespace RCT{
 		 * queue.
 		 */
 		std::size_t getRxBufferSize(void);
+
+        std::size_t getBitDepth(void)
+        {
+            return 12;
+        }
     };
 }
 #endif

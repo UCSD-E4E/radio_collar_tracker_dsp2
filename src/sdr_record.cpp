@@ -38,15 +38,14 @@ void RCT::PingFinder::start(void)
     }
     else
     {
-        #if USE_SDR_TYPE == SDR_TYPE_USRP
-        sdr = new RCT::USRP(gain, sampling_rate, center_frequency);
-        #elif USE_SDR_TYPE == SDR_TYPE_AIRSPY
-        sdr = new RCT::AirSpy(gain, sampling_rate, center_frequency);
-        #elif USE_SDR_TYPE == SDR_TYPE_HACKRF
-        sdr = new RCT::HackRF(gain, sampling_rate, center_frequency);
-        #else
-        #error Unknown SDR selected
-        #endif
+        if(USE_SDR_TYPE == SDR_TYPE_USRP)
+            sdr = new RCT::USRP(gain, sampling_rate, center_frequency);
+        else if(USE_SDR_TYPE == SDR_TYPE_AIRSPY)
+            sdr = new RCT::AirSpy(gain, sampling_rate, center_frequency);
+        else if(USE_SDR_TYPE == SDR_TYPE_HACKRF)
+            sdr = new RCT::HackRF(gain, sampling_rate, center_frequency);
+        else
+            throw std::runtime_error("Unknown SDR");
     }
     if(nullptr == sdr)
     {
@@ -60,7 +59,8 @@ void RCT::PingFinder::start(void)
                           ping_min_snr,
                           ping_max_len_mult,
                           ping_min_len_mult,
-                          sdr->getRxBufferSize()};
+                          sdr->getRxBufferSize(),
+                          sdr->getBitDepth()};
     if(nullptr == dsp)
     {
         delete(sdr);

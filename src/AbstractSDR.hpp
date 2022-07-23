@@ -26,6 +26,16 @@ namespace RCT{
 		}
 
 		/**
+		 * @brief Get the Bit Depth
+		 * 
+		 * @return std::size_t 
+		 */
+		virtual std::size_t getBitDepth(void)
+		{
+			return 8;
+		}
+
+		/**
 		 * Method to start the streaming threads of this SDR.  This function
 		 * shall initiate the streaming action of the software defined radio.
 		 * Each frame of data shall be of length rx_buffer_size, and be enqueued

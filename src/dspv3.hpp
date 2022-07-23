@@ -50,7 +50,8 @@ namespace RCT{
 			const double snr,
 			const double max_len_threshold,
 			const double min_len_threshold,
-			const std::size_t input_block_size);
+			const std::size_t input_block_size,
+			const std::size_t bit_depth);
 
 		/**
 		 * Destructor for this DSP class.  This destructor will not deallocate
@@ -386,7 +387,7 @@ namespace RCT{
 		 * @param  sample Complex signal amplitude
 		 * @return        Signal power
 		 */
-		const double pow(const fftw_complex& sample) const;
+		const double signal_power(const fftw_complex& sample) const;
 
 		/**
 		 * Measures the maximum amplitude of the ping.
@@ -422,6 +423,14 @@ namespace RCT{
 		 * 
 		 */
 		const std::size_t input_block_size;
+
+		/**
+		 * @brief Fixed Point Scalar
+		 * 
+		 * This is the data scaling constant
+		 * 
+		 */
+		const int32_t fixed_point_scalar;
 	};
 }
 #endif

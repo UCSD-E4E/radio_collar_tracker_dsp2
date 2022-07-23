@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <cstdint>
 #include <limits>
-
+#include <cmath>
 #define DEBUG
 
 #ifdef DEBUG
@@ -29,14 +29,16 @@ namespace RCT{
 		const double snr,
 		const double max_len_threshold,
 		const double min_len_threshold,
-		const std::size_t input_block_size) : 
+		const std::size_t input_block_size,
+		const std::size_t bit_depth) : 
 	target_freqs(target_freqs),
 	nFreqs(target_freqs.size()),
 	s_freq{sampling_freq},
 	c_freq{center_freq},
 	input_block_size(input_block_size),
-	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size){
-
+	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size),
+	fixed_point_scalar(pow(2, bit_depth - 1))
+	{
 		ping_width_ms = width_ms;
 		std::cout << "Constructing DSP with width of " << ping_width_ms << " ms" << std::endl;
 		MIN_SNR = snr;
@@ -441,7 +443,7 @@ namespace RCT{
 		std::cout << "Classifier received " << sample_counter << " samples, estimated " << sample_counter * _ms_per_sample / 1e3 << " s" << std::endl;
 	}
 
-	const double DSP_V3::pow(const fftw_complex& sample) const{
+	const double DSP_V3::signal_power(const fftw_complex& sample) const{
 		double real = sample[0];
 		double imag = sample[1];
 		std::complex<double> val{real, imag};
@@ -536,14 +538,14 @@ namespace RCT{
 					fftw_execute(_unpack_fft_plan);
 					fft_counter++;
 					for(size_t i = 0; i < nFreqs; i++){
-						(*integrator)[i] += pow(_unpack_fft_out[target_bins[i]]);
+						(*integrator)[i] += signal_power(_unpack_fft_out[target_bins[i]]);
 					}
 
 				}
 				if(!_output_dir.empty()){
 					for(std::size_t i = 0; i < this->input_block_size; i++){
-						int_buf[2*i] = dataObj[i].real() * INT16_MAX;
-						int_buf[2*i + 1] = dataObj[i].imag() * INT16_MAX;
+						int_buf[2*i] = dataObj[i].real() * fixed_point_scalar;
+						int_buf[2*i + 1] = dataObj[i].imag() * fixed_point_scalar;
 					}
 					data_str.write((char*)int_buf, this->input_block_size * 2 * sizeof(int16_t));
 					data_str.flush();

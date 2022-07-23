@@ -61,7 +61,13 @@ namespace RCT
             syslog(LOG_ERR, "Failed to set LNA gain: %s\n", hackrf_error_name((hackrf_error) retval));
             throw std::runtime_error("Failed to set HackRF gain");
         }
-
+        retval = hackrf_set_vga_gain(device, 62);
+        if(HACKRF_SUCCESS != retval)
+        {
+            syslog(LOG_ERR, "Failed to set VGA gain: %s\n", hackrf_error_name((hackrf_error)retval));
+            throw std::runtime_error("Failed to set HacRF VGA gain");
+        }
+        
         // Set the center frequency
         retval = hackrf_set_freq(device, freq);
         if(HACKRF_SUCCESS != retval)

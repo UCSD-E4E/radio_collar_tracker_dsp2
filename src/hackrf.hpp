@@ -114,6 +114,11 @@ namespace RCT{
             {
                 return 131072;
             }
+
+            std::size_t getBitDepth(void)
+            {
+                return 8;
+            }
     };
 }
 

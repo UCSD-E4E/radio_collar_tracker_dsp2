@@ -43,6 +43,7 @@ void RCT::PingFinder::start(void)
         #elif USE_SDR_TYPE == SDR_TYPE_AIRSPY
         sdr = new RCT::AirSpy(gain, sampling_rate, center_frequency);
         #elif USE_SDR_TYPE == SDR_TYPE_HACKRF
+        sdr = new RCT::HackRF(gain, sampling_rate, center_frequency);
         #else
         #error Unknown SDR selected
         #endif

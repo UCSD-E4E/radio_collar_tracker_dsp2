@@ -3,4 +3,5 @@
 
 #include "usrp.hpp"
 #include "airspy.hpp"
+#include "hackrf.hpp"
 #endif

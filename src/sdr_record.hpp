@@ -18,6 +18,7 @@
 #include <pybind11/stl_bind.h>
 #endif
 #include "ping_sink.hpp"
+#include "product.hpp"
 
 namespace RCT{
     class PingFinder
@@ -99,6 +100,7 @@ namespace RCT{
         double ping_max_len_mult;
         double ping_min_len_mult;
         std::vector<size_t> target_frequencies;
+		std::uint32_t sdr_type = USE_SDR_TYPE;
 
         PingFinder();
 

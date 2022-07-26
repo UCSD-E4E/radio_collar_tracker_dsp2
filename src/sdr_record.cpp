@@ -38,11 +38,11 @@ void RCT::PingFinder::start(void)
     }
     else
     {
-        if(USE_SDR_TYPE == SDR_TYPE_USRP)
+        if(sdr_type == SDR_TYPE_USRP)
             sdr = new RCT::USRP(gain, sampling_rate, center_frequency);
-        else if(USE_SDR_TYPE == SDR_TYPE_AIRSPY)
+        else if(sdr_type == SDR_TYPE_AIRSPY)
             sdr = new RCT::AirSpy(gain, sampling_rate, center_frequency);
-        else if(USE_SDR_TYPE == SDR_TYPE_HACKRF)
+        else if(sdr_type == SDR_TYPE_HACKRF)
             sdr = new RCT::HackRF(gain, sampling_rate, center_frequency);
         else
             throw std::runtime_error("Unknown SDR");
@@ -207,6 +207,8 @@ PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
         "Sets the min multipler of the ping width");
     pf.def_readwrite("target_frequencies", &RCT::PingFinder::target_frequencies,
         "Sets the target frequencies");
+    pf.def_readwrite("sdr_type", &RCT::PingFinder::sdr_type,
+        "Sets the target SDR");
     
     m.doc() = R"pbdoc(
         Radio Collar Tracker DSP Module

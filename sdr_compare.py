@@ -8,10 +8,6 @@ import numpy as np
 
 from radio_collar_tracker_dsp2 import PingFinder
 
-SDR_ENABLED = True
-GPS_ENABLED = True
-USB_ENABLED = True
-
 callback_called = 0
 
 pings: List[float] = []
@@ -39,13 +35,20 @@ def test_run():
     ping_finder.ping_min_len_mult = 0.5
     ping_finder.target_frequencies = [173964000]
 
+    ping_finder.sdr_type = 3
+
+    if ping_finder.sdr_type == 1:
+        ping_finder.gain = 56.0
+    elif ping_finder.sdr_type == 2:
+        ping_finder.gain = 14.0
+    elif ping_finder.sdr_type == 3:
+        ping_finder.gain = 40.0
+
     ping_finder.register_callback(phony_callback)
     raw_files = glob.glob(os.path.join(ping_finder.output_dir, f"RAW_DATA_{ping_finder.run_num:06d}_*"))
     for f in raw_files:
         os.remove(f)
 
-    if SDR_ENABLED == False:
-        return
     ping_finder.start()
 
     time.sleep(RUN_TIME)

@@ -29,6 +29,23 @@ end fork
 stop
 @enduml
 
+@startuml RCT Signal Processing Diagram
+SDR -> "Host Library" : USB Transfer
+"Host Library" -> AbstractSDR : Raw Transfer
+queue "Input Queue" as i_q
+AbstractSDR -> i_q : Complex IQ x Transfer Block
+i_q -> Unpack : Complex IQ x Transfer Block
+Unpack -> FFT : Complex IQ x FFT Length
+Unpack -> "File Sink" : Complex IQ X Transfer Block
+FFT -> Integrator : Complex Spectra x FFT Length
+queue "Power Queue" as c_q
+Integrator -> c_q : Spectral Power x FFT Length
+c_q -> Detector : Spectral Power x FFT Length
+queue "Ping Queue" as p_q
+Detector -> "Ping Sink" : Detected Pings
+"Ping Sink" -> "Application Callback" : Ping Parameters
+@enduml
+
 @startuml RCT Run Class Diagram
 class RCTRun
 {

@@ -13,7 +13,7 @@
     2.  You must install libboost 1.65. If unable, follow the instructions below
     3.  `wget https://boostorg.jfrog.io/artifactory/main/release/1.65.0/source/boost_1_65_0.tar.bz2`
     4.  `tar --bzip2 -xf ./boost_1_65_0.tar.bz2`
-    4.  `sudo ./bootstrap.ah --prefix=/usr/local`
+    4.  `./bootstrap.sh --prefix=/usr/local`
     5.  `sudo ./b2 install`
 3. Install `uhd`
     1.  `sudo apt-get install python3-pip python3-mako libusb-1.0-0-dev cmake build-essential`
@@ -58,9 +58,9 @@ Requirements:
     8. `sudo ldconfig`
 2. Install `boost`
     1.  `cd ~`
-    2.  `wget https://versaweb.d1.sourceforge.net/project/boost/boost_1_65_0.tar.bz2`
+    2.  `wget https://boostorg.jfrog.io/artifactory/main/release/1.65.0/source/boost_1_65_0.tar.bz2`
     3.  `tar --bzip2 -xf ./boost_1_65_0.tar.bz2`
-    4.  `sudo ./bootstrap.ah --prefix=/usr/local`
+    4.  `./bootstrap.sh --prefix=/usr/local`
     5.  `sudo ./b2 install`
 2. Install `uhd`
     1.  `cd ~`

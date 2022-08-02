@@ -11,8 +11,8 @@
 2. Install `libboost`
     1.  Try `sudo apt-get install libboost-all-dev`
     2.  You must install libboost 1.65. If unable, follow the instructions below
-    3.  `wget https://boostorg.jfrog.io/artifactory/main/release/1.65.0/source/boost_1_65_0.tar.bz2`
-    4.  `tar --bzip2 -xf ./boost_1_65_0.tar.bz2`
+    3.  `wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2`
+    4.  `tar --bzip2 -xf ./boost_1_78_0.tar.bz2`
     4.  `./bootstrap.sh --prefix=/usr/local`
     5.  `sudo ./b2 install`
 3. Install `uhd`
@@ -20,10 +20,10 @@
     2.  `sudo python3 -m pip install six requests pyserial`
     3.	`git clone https://github.com/EttusResearch/uhd.git`
     4.	`cd uhd/host`
-    5.	`git checkout v3.11.0.1`
+    5.	`git checkout v4.2.0.1`
     6.	`mkdir build`
     7.	`cd build`
-    8.	`cmake -DENABLE_B100=OFF -DENABLE_X300=OFF -DENABLE_N230=OFF -DENABLE_USRP1=OFF -DENABLE_USRP2=OFF -DENABLE_OCTOCLOCK=OFF -DENABLE_RFNOC=OFF -DENABLE_MPMD=OFF -DENABLE_EXAMPLES=OFF -DENABLE_MANUAL=OFF -DENABLE_TESTS=OFF ../`
+    8.	`cmake -DENABLE_B100=OFF -DENABLE_X300=OFF -DENABLE_USRP1=OFF -DENABLE_USRP2=OFF -DENABLE_OCTOCLOCK=OFF -DENABLE_MPMD=OFF -DENABLE_EXAMPLES=OFF -DENABLE_MANUAL=OFF -DENABLE_TESTS=OFF ../`
     9.	`make -j8`
     10.	`sudo make install`
     11.	`sudo ldconfig`

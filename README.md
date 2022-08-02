@@ -32,6 +32,24 @@
     14. `sudo cp uhd-usrp.rules /etc/udev/rules.d/`
     15. `sudo udevadm control --reload-rules`
     16. `sudo udevadm trigger`
+4. Install `libairspy`
+    1.  `sudo apt-get install build-essential cmake libusb-1.0-0-dev pkg-config`
+    2.  `git clone https://github.com/airspy/airspyone_host.git`
+    3.  `mkdir airspyone_host/build`
+    4.  `cd airspyone_host/build`
+    5.  `cmake ../ -DINSTALL_UDEV_RULES=ON`
+    6.  `make -j8`
+    7.  `sudo make install`
+    8.  `sudo ldconfig`
+5.  Install `libhackrf`
+    1.  `sudo apt-get install build-essential cmake libusb-1.0-0-dev pkg-config libfftw3-dev`
+    2.  `git clone https://github.com/greatscottgadgets/hackrf.git`
+    3.  `mkdir hackrf/host/build`
+    4.  `cd hackrf/host/build`
+    5.  `cmake ../`
+    6.  `make -j`
+    7.  `sudo make install`
+    8.  `sudo ldconfig`
 4. Install build dependencies
     1. `sudo apt-get install python3.7 python3.7-dev cmake build-essential`
     2. `python3.7 -m pip install git+https://github.com/UCSD-E4E/radio_collar_tracker_comms`

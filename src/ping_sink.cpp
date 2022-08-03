@@ -10,6 +10,7 @@
 void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
     std::condition_variable &var)
 {
+    ping_hwm = 0;
     while(run)
     {
         std::unique_lock<std::mutex> inputLock(mutex);
@@ -41,6 +42,7 @@ void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
 void RCT::PingSink::start(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
     std::condition_variable &var)
 {
+    ping_hwm = 0;
     _input_cv = &var;
     run = true;
     localizer_thread = new std::thread(&RCT::PingSink::process, this, 
@@ -57,7 +59,8 @@ void RCT::PingSink::stop(void)
     std::cout << "Ping High Water Mark: " << ping_hwm << std::endl;
 }
 
-RCT::PingSink::PingSink(void)
+RCT::PingSink::PingSink(void) :
+    ping_hwm(0)
 {
 
 }

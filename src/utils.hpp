@@ -5,7 +5,7 @@
 namespace RCT
 {
     template <class T>
-    void updated_hwm(std::queue<T>& queue, std::size_t& hwm)
+    void updated_hwm(std::queue<T>& queue, int& hwm)
     {
         if(queue.size() > hwm)
         {

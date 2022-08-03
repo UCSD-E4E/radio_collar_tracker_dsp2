@@ -11,6 +11,7 @@ pybind11_add_module(radio_collar_tracker_dsp2
     src/ping_sink.cpp
     src/airspy.cpp
     src/hackrf.cpp
+    src/utils.cpp
     )
 
 find_package(Boost QUIET REQUIRED COMPONENTS program_options system thread)
@@ -43,6 +44,7 @@ add_executable(pingFinderTest
     src/airspy.cpp
     src/test_PingFinder.cpp
     src/hackrf.cpp
+    src/utils.cpp
 )
 
 target_link_libraries(pingFinderTest

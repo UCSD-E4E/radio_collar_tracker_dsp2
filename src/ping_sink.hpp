@@ -43,6 +43,8 @@ namespace RCT
 		 */
 		std::condition_variable* _input_cv;
 
+		std::size_t ping_hwm;
+
     public:
         PingSink(void);
         ~PingSink();

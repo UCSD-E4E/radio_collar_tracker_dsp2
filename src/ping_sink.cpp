@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#include "utils.hpp"
 #if USE_PYBIND11 == 1
 #include <pybind11/chrono.h>
 #endif
@@ -19,6 +20,7 @@ void RCT::PingSink::process(std::queue<RCT::PingPtr> &queue, std::mutex &mutex,
         if(!queue.empty())
         {
             RCT::PingPtr pingPtr;
+            updated_hwm(queue, ping_hwm);
             pingPtr = queue.front();
             #if USE_PYBIND11 == 1
             for(auto &cb : callbacks)
@@ -51,6 +53,8 @@ void RCT::PingSink::stop(void)
     _input_cv->notify_all();
     localizer_thread->join();
     delete localizer_thread;
+
+    std::cout << "Ping High Water Mark: " << ping_hwm << std::endl;
 }
 
 RCT::PingSink::PingSink(void)

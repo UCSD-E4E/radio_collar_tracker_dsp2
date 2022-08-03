@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <limits>
 #include <cmath>
+#include "utils.hpp"
 #define DEBUG
 
 #ifdef DEBUG
@@ -37,7 +38,9 @@ namespace RCT{
 	c_freq{center_freq},
 	input_block_size(input_block_size),
 	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size),
-	fixed_point_scalar(pow(2, bit_depth - 1))
+	fixed_point_scalar(pow(2, bit_depth - 1)),
+	input_hwm(0),
+	power_hwm(0)
 	{
 		ping_width_ms = width_ms;
 		std::cout << "Constructing DSP with width of " << ping_width_ms << " ms" << std::endl;
@@ -314,6 +317,10 @@ namespace RCT{
 			}
 
 			if(!i_q.empty()){
+
+				// HWM
+				updated_hwm(i_q, power_hwm);
+
 				std::shared_ptr<std::vector<double>> sig = i_q.front();
 				i_q.pop();
 				sample_counter++;
@@ -496,6 +503,7 @@ namespace RCT{
 				i_v.wait(inputLock);
 			}
 			if(!i_q.empty()){
+				updated_hwm(i_q, input_hwm);
 				const std::complex<double>* dataObj = i_q.front();
 				i_q.pop();
 				buffer_counter++;
@@ -575,6 +583,8 @@ namespace RCT{
 		std::cout << "Unpack received " << sample_counter << " samples, estimated " << (double)sample_counter / s_freq << " seconds of data" << std::endl;
 		std::cout << "Unpack ran " << fft_counter << " ffts" << std::endl;
 		std::cout << "Unpack wrote " << write_counter / 1024 / 1024 << " MB, estimated " << (double)write_counter / 4 / s_freq << " seconds of data" << std::endl;
+		std::cout << "Input High Water Mark: " << input_hwm << std::endl;
+		std::cout << "Power High Water Mark: " << power_hwm << std::endl;
 		delete[] int_buf;
 		delete[] leftoverData;
 		#ifdef DEBUG

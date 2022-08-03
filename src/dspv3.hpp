@@ -431,6 +431,9 @@ namespace RCT{
 		 * 
 		 */
 		const int32_t fixed_point_scalar;
+
+		std::size_t input_hwm;
+		std::size_t power_hwm;
 	};
 }
 #endif

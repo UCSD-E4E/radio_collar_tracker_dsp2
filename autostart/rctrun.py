@@ -108,9 +108,9 @@ class RCTRun:
             print("sleep timer start or stop time was not specified")
             return
         # Calculate msecs turned off
-        timeOff = (startTime - stopTime).total_seconds() * 1000
-        if timeOff < 0:
-            timeOff += 24 * 60 * 60 * 1000
+        self.timeOff = (startTime - stopTime).total_seconds() * 1000
+        if self.timeOff < 0:
+            self.timeOff += 24 * 60 * 60 * 1000
         # Calculate msecs until shut off time
         timeToSleep = (stopTime - datetime.datetime.now()).total_seconds()
         if (timeToSleep < 0):
@@ -378,7 +378,7 @@ class RCTRun:
     def activateSleepTimer(self, test):
         global stop_threads
         stop_threads = True
-        packet = SETALARMCommand(self.startTime)
+        packet = SETALARMCommand(self.timeOff)
         with serial.Serial(port=self.timerSerial, baudrate=self.timerBaud) as ser:
             ser.write(packet.to_bytes)
         

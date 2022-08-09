@@ -40,7 +40,11 @@ class RCTOpts(object):
                 'SYS_autostart',
                 'SYS_outputDir',
                 'SDR_samplingFreq',
-                'SDR_centerFreq']
+                'SDR_centerFreq',
+                'sleep_timer',
+                'sleep_timer_baud',
+                'timer_start_time',
+                'timer_stop_time']
         self._params = {}
         self.loadParams()
 

@@ -15,6 +15,7 @@ import yaml
 
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
+from stcomms.stcomms import SETALARMCommand
 from tcp_command import CommandListener
 from UIB_instance import UIBoard
 
@@ -77,6 +78,7 @@ class RCTRun:
         self.init_output_thread = threading.Thread(target=self.initOutput, kwargs={'test':test})
         self.init_gps_thread = threading.Thread(target=self.initGPS, kwargs={'test':test})
 
+        self.initSleepTimer()
 
         self.init_comms_thread.start()
         self.init_SDR_thread.start()
@@ -88,6 +90,33 @@ class RCTRun:
         self.init_SDR_thread.join()
         self.init_output_thread.join()
         self.init_gps_thread.join()
+        self.init_sleeptimer_thread.join()
+
+    def initSleepTimer(self):
+        try:
+            self.timerSerial = self.get_var('sleep_timer')
+            self.timerBaud = int(self.get_var('sleep_timer_baud'))
+            startTime = datetime.datetime.strptime(self.get_var('timer_start_time'))
+            stopTime = datetime.datetime.strptime(self.get_var('timer_stop_time'))
+        except:
+            print("sleep timer parameters could not be read from config file")
+            return
+        if self.timerSerial is None or self.timerBaud is None:
+            print("sleep timer serial settings were not specified")
+            return
+        if startTime is None or stopTime is None:
+            print("sleep timer start or stop time was not specified")
+            return
+        # Calculate msecs turned off
+        timeOff = (startTime - stopTime).total_seconds() * 1000
+        if timeOff < 0:
+            timeOff += 24 * 60 * 60 * 1000
+        # Calculate msecs until shut off time
+        timeToSleep = (stopTime - datetime.datetime.now()).total_seconds()
+        if (timeToSleep < 0):
+            timeToSleep += 24 * 60 * 60
+        
+        threading.Timer(timeToSleep, self.activateSleepTimer)
 
     def initComms(self):
         if self.cmdListener is None:
@@ -346,6 +375,13 @@ class RCTRun:
         return config[var]
         
 
+    def activateSleepTimer(self, test):
+        global stop_threads
+        stop_threads = True
+        packet = SETALARMCommand(self.startTime)
+        with serial.Serial(port=self.timerSerial, baudrate=self.timerBaud) as ser:
+            ser.write(packet.to_bytes)
+        
 def main():
     global stop_threads
     stop_threads = False

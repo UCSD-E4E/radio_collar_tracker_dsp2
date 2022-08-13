@@ -1,6 +1,8 @@
 import enum
 import struct
 
+headerLen = 6
+
 class COMMAND_ID(enum.Enum):
     '''
     Command Packet IDs
@@ -16,7 +18,7 @@ class stBinaryPacket:
 
     def to_bytes(self) -> bytes:
         payloadLen = len(self._payload)
-        header = struct.pack('<BBHH', 0xE4, 0xEb, payloadLen,
+        header = struct.pack('<BBHH', 0xE4, 0xEb, payloadLen + headerLen,
                              self._pid)
         msg = header + self._payload
         return msg
@@ -40,7 +42,7 @@ class stBinaryPacket:
         return self.to_bytes() == packet.to_bytes()
 
     @classmethod
-    def from_bytes(cls, packet: bytes) -> stBinaryPacket:
+    def from_bytes(cls, packet: bytes):
         if len(packet) < 6:
             raise RuntimeError("Packet too short!")
         s1, s2, _, pid, = struct.unpack("<BBHH", packet[0:6]) # fix

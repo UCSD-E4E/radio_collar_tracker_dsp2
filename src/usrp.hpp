@@ -186,6 +186,11 @@ namespace RCT{
 		 * @return Timestamp of first sample streamed in ms since Unix epoch.
 		 */
 		const size_t getStartTime_ms() const;
+
+		std::size_t getBitDepth(void)
+		{
+			return 16;
+		}
 	};
 }
 

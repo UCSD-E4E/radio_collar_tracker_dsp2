@@ -198,12 +198,12 @@ namespace RCT{
 		uint64_t prev_finish = 0;
 		
 		while(run){
-			std::complex<double>* raw_buffer = new std::complex<double>[rx_buffer_size * 2];
+			std::complex<double>* raw_buffer = new std::complex<double>[this->getRxBufferSize() * 2];
 			
 			gettimeofday(&starttime, NULL);
 
 			// get a buffer of data from rx_streamer and put in raw_buffer
-			uhd_rx_streamer_recv(rx_streamer, (void**) &raw_buffer, rx_buffer_size, &md, 1.0, false, &num_samps);
+			uhd_rx_streamer_recv(rx_streamer, (void**) &raw_buffer, this->getRxBufferSize(), &md, 1.0, false, &num_samps);
 			gettimeofday(&stoptime, NULL);
 
 			prev_finish = finishtime.tv_sec * 1e6 + finishtime.tv_usec;

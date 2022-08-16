@@ -11,3 +11,10 @@ SDR_samplingFreq: 1500000
 SYS_autostart: false
 SYS_outputDir: ../testOutput
 TGT_frequencies: [173964000]
+sleep_timer: /dev/serial0
+sleep_timer_baud: 115200
+timer_start_time: 07:00:00 # 7 AM
+timer_stop_time: 20:00:00 # 8 PM
+sampling_rate: 00:10:00 # 10 min
+latitude: 478110
+longitude: 3638925

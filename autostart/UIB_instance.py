@@ -5,6 +5,7 @@ import time
 import json
 import traceback
 from RCTComms.comms import (rctHeartBeatPacket, rctVehiclePacket, rctPingPacket, EVENTS)
+import yaml
 
 
 class UIBoard:
@@ -31,6 +32,7 @@ class UIBoard:
         self.port = port
         self.baud = baud
         self.testMode = testMode
+        self.towerMode = True
 
         self.run = False
         self.listener = threading.Thread(target=self.uibListener)
@@ -58,6 +60,21 @@ class UIBoard:
                 try:
                     lat = -117.23679
                     lon = 32.88534
+                    hdg = 0
+                    date = datetime.datetime.now()
+                    packet = rctVehiclePacket(lat, lon, 0, hdg, date)
+                    self.handleSensorPacket(packet)
+                    self.recentLoc = [lat, lon, 0]
+                except Exception as e:
+                    print(str(e))
+        elif self.towerMode:
+            while self.run:
+                try:
+                    cnfg_file = open('/usr/local/etc/rct_config')
+                    config = yaml.safe_load(cnfg_file)
+                    config[var]
+                    lat = config['latitude']
+                    lon = config['longitude']
                     hdg = 0
                     date = datetime.datetime.now()
                     packet = rctVehiclePacket(lat, lon, 0, hdg, date)

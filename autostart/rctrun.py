@@ -18,6 +18,7 @@ from RCTComms.transport import RCTTCPClient
 from stcomms.stcomms import SETALARMCommand
 from tcp_command import CommandListener
 from UIB_instance import UIBoard
+from ..tests.test_sleeptimer_comms import activateSleepTimer
 
 WAIT_COUNT = 60
 
@@ -96,27 +97,31 @@ class RCTRun:
         try:
             self.timerSerial = self.get_var('sleep_timer')
             self.timerBaud = int(self.get_var('sleep_timer_baud'))
-            startTime = datetime.datetime.strptime(self.get_var('timer_start_time'))
-            stopTime = datetime.datetime.strptime(self.get_var('timer_stop_time'))
+            startTime = datetime.datetime.strptime(self.get_var('timer_start_time'), "%H:%M:%S")
+            stopTime = datetime.datetime.strptime(self.get_var('timer_stop_time'), "%H:%M:%S")
+            sampleRate = datetime.datetime.strptime(self.get_var('sampling_rate'), "%H:%M:%S")
         except:
             print("sleep timer parameters could not be read from config file")
-            return
         if self.timerSerial is None or self.timerBaud is None:
             print("sleep timer serial settings were not specified")
             return
-        if startTime is None or stopTime is None:
-            print("sleep timer start or stop time was not specified")
-            return
-        # Calculate msecs turned off
-        self.timeOff = (startTime - stopTime).total_seconds() * 1000
-        if self.timeOff < 0:
-            self.timeOff += 24 * 60 * 60 * 1000
-        # Calculate msecs until shut off time
-        timeToSleep = (stopTime - datetime.datetime.now()).total_seconds()
-        if (timeToSleep < 0):
-            timeToSleep += 24 * 60 * 60
-        
-        threading.Timer(timeToSleep, self.activateSleepTimer)
+        if startTime is not None and stopTime is not None:
+            # Calculate msecs turned off
+            timeOff = (startTime - stopTime).total_seconds() * 1000
+            if timeOff < 0:
+                timeOff += 24 * 60 * 60 * 1000
+            # Calculate msecs until shut off time
+            timeToSleep = (stopTime - datetime.datetime.now()).total_seconds()
+            if (timeToSleep < 0):
+                timeToSleep += 24 * 60 * 60
+            threading.Timer(timeToSleep, self.activateSleepTimer, [timeOff])
+        if sampleRate is not None:
+            #sample for 30 seconds, sleep between samples
+            runningTime = datetime.datetime.strptime("00:00:30", "%H:%M:%S")
+            sleepTime = (sampleRate - runningTime).total_seconds() * 1000
+            threading.Timer(runningTime, activateSleepTimer, [sleepTime])
+            
+
 
     def initComms(self):
         if self.cmdListener is None:
@@ -375,10 +380,10 @@ class RCTRun:
         return config[var]
         
 
-    def activateSleepTimer(self, test):
+    def activateSleepTimer(self, timeOff):
         global stop_threads
         stop_threads = True
-        packet = SETALARMCommand(self.timeOff)
+        packet = SETALARMCommand(timeOff)
         with serial.Serial(port=self.timerSerial, baudrate=self.timerBaud) as ser:
             ser.write(packet.to_bytes)
         

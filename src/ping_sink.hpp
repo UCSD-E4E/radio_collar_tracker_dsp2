@@ -1,8 +1,10 @@
 #ifndef __RTT_PING_SINK_H__
 #define __RTT_PING_SINK_H__
+#if USE_PYBIND11 == 1
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl_bind.h>
+#endif
 #include <vector>
 #include "ping.hpp"
 #include <mutex>
@@ -13,7 +15,9 @@ namespace RCT
 {
     class PingSink
     {
+		#if USE_PYBIND11 == 1
         std::vector<pybind11::object> callbacks;
+		#endif
         /**
 		 * Localizes the input pings using data from the gps_module
 		 * @param queue      Input queue
@@ -39,10 +43,14 @@ namespace RCT
 		 */
 		std::condition_variable* _input_cv;
 
+		int ping_hwm;
+
     public:
         PingSink(void);
         ~PingSink();
+		#if USE_PYBIND11 == 1
         void register_callback(pybind11::object &fn);
+		#endif
         /**
 		 * Starts the PingLocalizer threads with the specified input queue for
 		 * pings and GPS module.

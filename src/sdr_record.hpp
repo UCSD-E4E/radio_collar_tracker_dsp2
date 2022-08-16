@@ -12,10 +12,13 @@
 #include "ping.hpp"
 #include <thread>
 #include <functional>
+#if USE_PYBIND11 == 1
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl_bind.h>
+#endif
 #include "ping_sink.hpp"
+#include "product.hpp"
 
 namespace RCT{
     class PingFinder
@@ -80,7 +83,9 @@ namespace RCT{
 
 
 		void _testThread(void);
+		#if USE_PYBIND11 == 1
 		std::vector<pybind11::object> callbacks;
+		#endif
 
     public:
         double gain;
@@ -95,10 +100,13 @@ namespace RCT{
         double ping_max_len_mult;
         double ping_min_len_mult;
         std::vector<size_t> target_frequencies;
+		std::uint32_t sdr_type = USE_SDR_TYPE;
 
         PingFinder();
 
+		#if USE_PYBIND11 == 1
 		void register_callback(const pybind11::object &fn);
+		#endif
         void start(void);
         void stop(void);
 

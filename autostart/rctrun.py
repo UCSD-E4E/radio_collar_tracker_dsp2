@@ -15,7 +15,7 @@ import yaml
 
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
-from stcomms.stcomms import SETALARMCommand
+from RCTComms.stcomms import SETALARMCommand
 from tcp_command import CommandListener
 from UIB_instance import UIBoard
 from ..tests.test_sleeptimer_comms import activateSleepTimer

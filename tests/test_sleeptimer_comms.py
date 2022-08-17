@@ -1,4 +1,4 @@
-from stcomms.stcomms import SETALARMCommand 
+from RCTComms.stcomms import SETALARMCommand 
 import serial
 import time
 import threading

@@ -118,7 +118,7 @@ class RCTRun:
             #sample for 30 seconds, sleep between samples
             runningTime = datetime.datetime.strptime("00:00:30", "%H:%M:%S")
             sleepTime = (sampleRate - runningTime).total_seconds() * 1000
-            threading.Timer(runningTime, activateSleepTimer, [sleepTime])
+            threading.Timer(runningTime, self.activateSleepTimer, [sleepTime])
             
 
 

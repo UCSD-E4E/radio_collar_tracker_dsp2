@@ -14,7 +14,8 @@
 #include <sys/time.h>
 #include <cstdint>
 #include <limits>
-
+#include <cmath>
+#include "utils.hpp"
 #define DEBUG
 
 #ifdef DEBUG
@@ -28,12 +29,19 @@ namespace RCT{
 		const std::size_t width_ms,
 		const double snr,
 		const double max_len_threshold,
-		const double min_len_threshold) : 
+		const double min_len_threshold,
+		const std::size_t input_block_size,
+		const std::size_t bit_depth) : 
 	target_freqs(target_freqs),
 	nFreqs(target_freqs.size()),
 	s_freq{sampling_freq},
-	c_freq{center_freq}{
-
+	c_freq{center_freq},
+	input_block_size(input_block_size),
+	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size),
+	fixed_point_scalar(pow(2, bit_depth - 1)),
+	input_hwm(0),
+	power_hwm(0)
+	{
 		ping_width_ms = width_ms;
 		std::cout << "Constructing DSP with width of " << ping_width_ms << " ms" << std::endl;
 		MIN_SNR = snr;
@@ -309,6 +317,10 @@ namespace RCT{
 			}
 
 			if(!i_q.empty()){
+
+				// HWM
+				updated_hwm(i_q, power_hwm);
+
 				std::shared_ptr<std::vector<double>> sig = i_q.front();
 				i_q.pop();
 				sample_counter++;
@@ -438,7 +450,7 @@ namespace RCT{
 		std::cout << "Classifier received " << sample_counter << " samples, estimated " << sample_counter * _ms_per_sample / 1e3 << " s" << std::endl;
 	}
 
-	const double DSP_V3::pow(const fftw_complex& sample) const{
+	const double DSP_V3::signal_power(const fftw_complex& sample) const{
 		double real = sample[0];
 		double imag = sample[1];
 		std::complex<double> val{real, imag};
@@ -460,6 +472,8 @@ namespace RCT{
 		std::size_t buffer_counter = 0;
 		char fname[1024];
 		std::ofstream data_str;
+		std::complex<double>* leftoverData = new std::complex<double>[this->input_block_size];
+		std::size_t leftoverCount = 0;
 
 
 		if(!_output_dir.empty()){
@@ -476,7 +490,7 @@ namespace RCT{
 			(*integrator)[i] = 0;
 		}
 
-		int16_t* int_buf = new int16_t[2 * AbstractSDR::rx_buffer_size];
+		int16_t* int_buf = new int16_t[2 * this->input_block_size];
 		#ifdef DEBUG
 		std::ofstream _ostr1{"unpack_in.log"};
 		#endif
@@ -489,54 +503,59 @@ namespace RCT{
 				i_v.wait(inputLock);
 			}
 			if(!i_q.empty()){
+				updated_hwm(i_q, input_hwm);
 				const std::complex<double>* dataObj = i_q.front();
 				i_q.pop();
 				buffer_counter++;
 				inputLock.unlock();
+				std::size_t dataIdx = 0;
 
-				if(integrate_counter >= int_factor && nFreqs > 0){
-					// push integrator to queue
-					std::unique_lock<std::mutex> cLock(_c_m);
-					_c_q.push(integrator);
-					cLock.unlock();
-					_c_v.notify_all();
-					integrator.reset(new std::vector<double>());
-					integrator->resize(nFreqs);
+				for(dataIdx; dataIdx < this->input_block_size; dataIdx += FFT_LEN)
+				{
+					if(integrate_counter >= int_factor && nFreqs > 0){
+						// push integrator to queue
+						std::unique_lock<std::mutex> cLock(_c_m);
+						_c_q.push(integrator);
+						cLock.unlock();
+						_c_v.notify_all();
+						integrator.reset(new std::vector<double>());
+						integrator->resize(nFreqs);
+						for(size_t i = 0; i < nFreqs; i++){
+							(*integrator)[i] = 0;
+						}
+						integrate_counter = 0;
+					}
+					integrate_counter += 1;
+					sample_counter += FFT_LEN;
+
+
+					// #ifdef DEBUG
+					// for(std::size_t i = 0; i < FFT_LEN; i++){
+					// 	_ostr1 << dataObj[dataIdx + i].real();
+					// 	if(dataObj[dataIdx + i].imag() >= 0){
+					// 		_ostr1 << '+';
+					// 	}
+					// 	_ostr1 << dataObj[i].imag() << "i" << std::endl;
+					// }
+					// #endif
+
+					for(size_t i = 0; i < FFT_LEN; i++){
+						_unpack_fft_in[i][0] = dataObj[dataIdx + i].real();
+						_unpack_fft_in[i][1] = dataObj[dataIdx + i].imag();
+					}
+					fftw_execute(_unpack_fft_plan);
+					fft_counter++;
 					for(size_t i = 0; i < nFreqs; i++){
-						(*integrator)[i] = 0;
+						(*integrator)[i] += signal_power(_unpack_fft_out[target_bins[i]]);
 					}
-					integrate_counter = 0;
-				}
-				integrate_counter += 1;
-				sample_counter += FFT_LEN;
 
-				// #ifdef DEBUG
-				// for(std::size_t i = 0; i < FFT_LEN; i++){
-				// 	_ostr1 << dataObj[i].real();
-				// 	if(dataObj[i].imag() >= 0){
-				// 		_ostr1 << '+';
-				// 	}
-				// 	_ostr1 << dataObj[i].imag() << "i" << std::endl;
-				// }
-				// #endif
-
-				for(size_t i = 0; i < FFT_LEN; i++){
-					_unpack_fft_in[i][0] = dataObj[i].real();
-					_unpack_fft_in[i][1] = dataObj[i].imag();
 				}
-				fftw_execute(_unpack_fft_plan);
-				fft_counter++;
-				for(size_t i = 0; i < nFreqs; i++){
-					(*integrator)[i] += pow(_unpack_fft_out[target_bins[i]]);
-				}
-
-				
 				if(!_output_dir.empty()){
-					for(std::size_t i = 0; i < AbstractSDR::rx_buffer_size; i++){
-						int_buf[2*i] = dataObj[i].real() * INT16_MAX;
-						int_buf[2*i + 1] = dataObj[i].imag() * INT16_MAX;
+					for(std::size_t i = 0; i < this->input_block_size; i++){
+						int_buf[2*i] = dataObj[i].real() * fixed_point_scalar;
+						int_buf[2*i + 1] = dataObj[i].imag() * fixed_point_scalar;
 					}
-					data_str.write((char*)int_buf, AbstractSDR::rx_buffer_size * 2 * sizeof(int16_t));
+					data_str.write((char*)int_buf, this->input_block_size * 2 * sizeof(int16_t));
 					data_str.flush();
 					if(frame_counter++ == FRAMES_PER_FILE){
 						write_counter += data_str.tellp();
@@ -549,6 +568,11 @@ namespace RCT{
 						frame_counter = 0;
 					}
 				}
+				// Handle leftover data
+				for(dataIdx; dataIdx < this->input_block_size; dataIdx++)
+				{
+					std::cout << "Leftover data in pack!" << std::endl;
+				}
 				delete[] dataObj;
 			}
 
@@ -559,7 +583,10 @@ namespace RCT{
 		std::cout << "Unpack received " << sample_counter << " samples, estimated " << (double)sample_counter / s_freq << " seconds of data" << std::endl;
 		std::cout << "Unpack ran " << fft_counter << " ffts" << std::endl;
 		std::cout << "Unpack wrote " << write_counter / 1024 / 1024 << " MB, estimated " << (double)write_counter / 4 / s_freq << " seconds of data" << std::endl;
+		std::cout << "Input High Water Mark: " << input_hwm << std::endl;
+		std::cout << "Power High Water Mark: " << power_hwm << std::endl;
 		delete[] int_buf;
+		delete[] leftoverData;
 		#ifdef DEBUG
 		_ostr1.close();
 		#endif

@@ -49,7 +49,7 @@ namespace RCT{
 		_input_dir(input_dir),
 		_stream(),
 		_files(),
-		_buffer_size(rx_buffer_size),
+		_buffer_size(2048),
 		_sampling_freq(4000000),
 		_p_run(program_run){
 		glob_t glob_output;

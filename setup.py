@@ -135,6 +135,7 @@ setup(
     install_requires=[
         'pyserial',
         'RCTComms',
+        "pyyaml",
     ],
     entry_points={
         'console_scripts':[

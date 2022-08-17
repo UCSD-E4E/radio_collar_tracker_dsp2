@@ -18,7 +18,6 @@ from RCTComms.transport import RCTTCPClient
 from RCTComms.stcomms import SETALARMCommand
 from tcp_command import CommandListener
 from UIB_instance import UIBoard
-from ..tests.test_sleeptimer_comms import activateSleepTimer
 
 WAIT_COUNT = 60
 
@@ -119,7 +118,7 @@ class RCTRun:
             #sample for 30 seconds, sleep between samples
             runningTime = datetime.datetime.strptime("00:00:30", "%H:%M:%S")
             sleepTime = (sampleRate - runningTime).total_seconds() * 1000
-            threading.Timer(runningTime, activateSleepTimer, [sleepTime])
+            threading.Timer(runningTime, self.activateSleepTimer, [sleepTime])
             
 
 
@@ -168,6 +167,7 @@ class RCTRun:
 
             if not self.test:
                 self.ping_finder = PingFinder()
+                self.ping_finder.sdr_type = 3
                 self.ping_finder.gain = self.cmdListener.options.getOption("gain")
                 self.ping_finder.sampling_rate = self.cmdListener.options.getOption("sampling_freq")
                 self.ping_finder.center_frequency = self.cmdListener.options.getOption("center_freq")

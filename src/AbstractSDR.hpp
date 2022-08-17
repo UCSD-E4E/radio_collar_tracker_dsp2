@@ -15,10 +15,25 @@ namespace RCT{
 	class AbstractSDR{
 	public:
 		/**
-		 * Receive buffer size. This is the size of data that should be received
-		 * at one time from the software defined radio.
+		 * @brief Receive buffer size.
+		 * 
+		 * This is the size of data that is placed into each entry in the output
+		 * queue.
 		 */
-		const static size_t rx_buffer_size = 2048;
+		virtual std::size_t getRxBufferSize(void)
+		{
+			return 2048;
+		}
+
+		/**
+		 * @brief Get the Bit Depth
+		 * 
+		 * @return std::size_t 
+		 */
+		virtual std::size_t getBitDepth(void)
+		{
+			return 8;
+		}
 
 		/**
 		 * Method to start the streaming threads of this SDR.  This function

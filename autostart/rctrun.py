@@ -16,8 +16,8 @@ import yaml
 from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
 from RCTComms.transport import RCTTCPClient
 from RCTComms.stcomms import SETALARMCommand
-from tcp_command import CommandListener
-from UIB_instance import UIBoard
+from autostart.tcp_command import CommandListener
+from autostart.UIB_instance import UIBoard
 
 WAIT_COUNT = 60
 

@@ -44,7 +44,8 @@ class RCTOpts(object):
                 'sleep_timer',
                 'sleep_timer_baud',
                 'timer_start_time',
-                'timer_stop_time']
+                'timer_stop_time',
+                'GCS_IP']
         self._params = {}
         self.loadParams()
 
@@ -182,9 +183,9 @@ class RCTOpts(object):
 
 class CommandListener(object):
     """docstring for CommandListener"""
-    def __init__(self, UIboard: UIBoard, port):
+    def __init__(self, UIboard: UIBoard, port: int,  addr: str):
         super(CommandListener, self).__init__()
-        self.sock = RCTTCPServer(port)
+        self.sock = RCTTCPClient(port, addr)
         self.port = mavComms(self.sock)
         self.portAddr = port
 

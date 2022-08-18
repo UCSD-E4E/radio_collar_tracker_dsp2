@@ -18,3 +18,4 @@ timer_stop_time: 20:00:00 # 8 PM
 sampling_rate: 00:10:00 # 10 min
 latitude: 478110
 longitude: 3638925
+GCS_IP: 127.0.0.1

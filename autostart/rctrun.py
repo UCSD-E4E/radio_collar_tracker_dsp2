@@ -94,6 +94,11 @@ class RCTRun:
         self.init_sleeptimer_thread.join()
 
     def initSleepTimer(self):    
+        self.timerSerial = None
+        self.timerBaud = None
+        startTime = None
+        stopTime = None
+        sampleRate = None
         try:
             self.timerSerial = self.get_var('sleep_timer')
             self.timerBaud = int(self.get_var('sleep_timer_baud'))

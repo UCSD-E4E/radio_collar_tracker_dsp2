@@ -197,7 +197,7 @@ class CommandListener(object):
         self.state = COMMS_STATES.connected
         self.sender = threading.Thread(target=self._sender)
         self.reconnect = threading.Thread(target=self._reconnectComms)
-        self.startFlag = False
+        self.startFlag = True
         self.UIBoard = UIboard
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()

@@ -91,6 +91,9 @@ class RCTRun:
         self.init_SDR_thread.join()
         self.init_output_thread.join()
         self.init_gps_thread.join()
+        
+        self.run()
+        
         self.init_sleeptimer_thread.join()
 
     def initSleepTimer(self):    
@@ -130,7 +133,11 @@ class RCTRun:
 
     def initComms(self):
         if self.cmdListener is None:
-            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport, self.gcsIP)
+            while self.cmdListener is None:
+                try:
+                    self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport, self.gcsIP)
+                except:
+                    time.sleep(0.5)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
 

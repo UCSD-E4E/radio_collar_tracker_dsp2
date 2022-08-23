@@ -16,9 +16,9 @@ class UIBoard:
         Store most recent ping?
         '''
         self.systemState = 0
-        self.sdrState = 0
-        self.sensorState = 0
-        self.storageState = 0
+        self.sdrState = 3
+        self.sensorState = 3
+        self.storageState = 4
         self.switch = 0
 
         self.__sensorCallbacks = {}
@@ -47,6 +47,8 @@ class UIBoard:
         '''
         Function to send Status to the UI Board
         '''
+        if self.towerMode:
+            return
         with serial.Serial(port=self.port, baudrate=self.baud) as ser:
             ser.write(packet.to_bytes)
 

@@ -70,7 +70,19 @@
 			"cinttypes": "cpp",
 			"typeindex": "cpp",
 			"typeinfo": "cpp",
-			"valarray": "cpp"
-		}
+			"valarray": "cpp",
+			"bit": "cpp",
+			"random": "cpp"
+		},
+		"editor.rulers": [
+		80
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-vscode.cmake-tools",
+			"ms-vscode.cpptools-extension-pack",
+			"ms-python.vscode-pylance"
+		]
 	}
 }

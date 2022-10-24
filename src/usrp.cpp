@@ -16,7 +16,7 @@
 #include <sys/syscall.h>
 
 namespace RCT{
-	SDR::SDR(double gain, long int rate, long int freq) : device_args(""), 
+	USRP::USRP(double gain, long int rate, long int freq) : device_args(""), 
 			subdev("A:A"), ant("RX2"), ref("internal"), cpu_format("fc64"), 
 			wire_format("sc16"), channel{0}, if_gain(gain), rx_rate(rate), 
 			rx_freq(freq), _start_ms(0){
@@ -67,22 +67,22 @@ namespace RCT{
 
 	}
 
-	void SDR::startStreaming(std::queue<std::complex<double>*>& queue, std::mutex& mutex, 
+	void USRP::startStreaming(std::queue<std::complex<double>*>& queue, std::mutex& mutex, 
 		std::condition_variable& var){
 		output_queue = &queue;
 		output_mutex = &mutex;
 		output_var = &var;
 		run = true;
-		stream_thread = new std::thread(&SDR::streamer, this);
+		stream_thread = new std::thread(&USRP::streamer, this);
 	}
 
-	void SDR::stopStreaming(){
+	void USRP::stopStreaming(){
 		run = false;
 		stream_thread->join();
 		delete stream_thread;
 	}
 
-	std::string SDR::uhd_strerror(uhd_error err){
+	std::string USRP::uhd_strerror(uhd_error err){
 		switch(err){
 			case UHD_ERROR_NONE:
 				return "None";
@@ -126,7 +126,7 @@ namespace RCT{
 		}
 	}
 
-	void SDR::streamer(){
+	void USRP::streamer(){
 		#ifdef DEBUG
 		std::cout << "SDR Thread: " << syscall(__NR_gettid) << std::endl;
 		#endif
@@ -198,12 +198,12 @@ namespace RCT{
 		uint64_t prev_finish = 0;
 		
 		while(run){
-			std::complex<double>* raw_buffer = new std::complex<double>[rx_buffer_size * 2];
+			std::complex<double>* raw_buffer = new std::complex<double>[this->getRxBufferSize() * 2];
 			
 			gettimeofday(&starttime, NULL);
 
 			// get a buffer of data from rx_streamer and put in raw_buffer
-			uhd_rx_streamer_recv(rx_streamer, (void**) &raw_buffer, rx_buffer_size, &md, 1.0, false, &num_samps);
+			uhd_rx_streamer_recv(rx_streamer, (void**) &raw_buffer, this->getRxBufferSize(), &md, 1.0, false, &num_samps);
 			gettimeofday(&stoptime, NULL);
 
 			prev_finish = finishtime.tv_sec * 1e6 + finishtime.tv_usec;
@@ -271,12 +271,12 @@ namespace RCT{
 		delete[] stream_args.cpu_format;
 	}
 
-	SDR::~SDR(){
+	USRP::~USRP(){
 		uhd_usrp_free(&usrp);
 		uhd_rx_streamer_free(&rx_streamer);
 	}
 
-	SDR::SDR(): device_args("num_recv_frames=512"), 
+	USRP::USRP(): device_args("num_recv_frames=512"), 
 			subdev("A:A"), ant("RX2"), ref("internal"), cpu_format("sc16"), 
 			wire_format("sc16"), channel{0}, if_gain(0), rx_rate(2000000), 
 			rx_freq{0}{
@@ -289,7 +289,7 @@ namespace RCT{
 
 	}
 
-	const size_t SDR::getStartTime_ms() const{
+	const size_t USRP::getStartTime_ms() const{
 		return _start_ms;
 	}
 }

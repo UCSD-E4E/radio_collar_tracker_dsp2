@@ -49,7 +49,9 @@ namespace RCT{
 			const std::size_t width_ms,
 			const double snr,
 			const double max_len_threshold,
-			const double min_len_threshold);
+			const double min_len_threshold,
+			const std::size_t input_block_size,
+			const std::size_t bit_depth);
 
 		/**
 		 * Destructor for this DSP class.  This destructor will not deallocate
@@ -280,7 +282,7 @@ namespace RCT{
 		/**
 		 * Number of receive frames per file, driven by DSP_V3::SAMPLES_PER_FILE
 		 */
-		const std::size_t FRAMES_PER_FILE = SAMPLES_PER_FILE / AbstractSDR::rx_buffer_size;
+		const std::size_t FRAMES_PER_FILE;
 
 		/**
 		 * Determines the maxima of the provided signal, stored in a circular
@@ -385,7 +387,7 @@ namespace RCT{
 		 * @param  sample Complex signal amplitude
 		 * @return        Signal power
 		 */
-		const double pow(const fftw_complex& sample) const;
+		const double signal_power(const fftw_complex& sample) const;
 
 		/**
 		 * Measures the maximum amplitude of the ping.
@@ -413,6 +415,25 @@ namespace RCT{
 		 * Input signal center frequency.
 		 */
 		const std::size_t c_freq;
+
+		/**
+		 * @brief Input block size
+		 * 
+		 * This is the size of data block in samples that should be expected.
+		 * 
+		 */
+		const std::size_t input_block_size;
+
+		/**
+		 * @brief Fixed Point Scalar
+		 * 
+		 * This is the data scaling constant
+		 * 
+		 */
+		const int32_t fixed_point_scalar;
+
+		int input_hwm;
+		int power_hwm;
 	};
 }
 #endif

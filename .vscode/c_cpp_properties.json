@@ -5,14 +5,15 @@
             "includePath": [
                 "${default}",
                 "${workspaceFolder}/extern/pybind11/include",
-                "/usr/include/python3.7"
+                "${workspaceFolder}/src"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu11",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "linux-gcc-x64",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

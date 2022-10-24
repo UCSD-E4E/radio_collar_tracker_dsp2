@@ -29,6 +29,41 @@ end fork
 stop
 @enduml
 
+@startuml RCT Signal Processing Diagram
+!pragma teoz true
+participant SDR
+participant "Host Library"
+box "AbstractSDR"
+participant "AbstractSDR"
+end box
+queue "Input Queue" as i_q
+box "DSPv3"
+box "_unpack"
+participant Unpack
+participant "File Sink"
+participant FFT
+participant Integrator
+end box
+queue "Power Queue" as c_q
+box "classify"
+participant Detector
+end box
+end box
+SDR -> "Host Library" : USB Transfer
+"Host Library" -> AbstractSDR : Raw Transfer
+AbstractSDR -> i_q : Complex IQ x Transfer Block
+i_q -> Unpack : Complex IQ x Transfer Block
+Unpack -> FFT : Complex IQ x FFT Length
+Unpack -> "File Sink" : Complex IQ X Transfer Block
+FFT -> Integrator : Complex Spectra x FFT Length
+Integrator -> c_q : Spectral Power x FFT Length
+c_q -> Detector : Spectral Power x FFT Length
+queue "Ping Queue" as p_q
+Detector -> p_q : Detected Pings
+p_q -> "Ping Sink" : Detected Pings
+"Ping Sink" -> "Application Callback" : Ping Parameters
+@enduml
+
 @startuml RCT Run Class Diagram
 class RCTRun
 {

@@ -55,12 +55,14 @@ class UIBoard:
         '''
         if self.testMode:
             while self.run:
+                time.sleep(4)
                 try:
-                    lat = -117.23679
-                    lon = 32.88534
+                    lon = -117.23679
+                    lat = 32.88534
                     hdg = 0
                     date = datetime.datetime.now()
                     packet = rctVehiclePacket(lat, lon, 0, hdg, date)
+                    print(packet.lat, packet.lon)
                     self.handleSensorPacket(packet)
                     self.recentLoc = [lat, lon, 0]
                 except Exception as e:
@@ -80,8 +82,8 @@ class UIBoard:
 
                             yearString = "20" + dat[4:6]
                             day = datetime.date(int(yearString), int(dat[2:4]), int(dat[0:2]))
-                            time = datetime.time(int(tme[0:2]), int(tme[2:4]), int(tme[4:6]))
-                            date = datetime.datetime.combine(day, time)
+                            tim = datetime.time(int(tme[0:2]), int(tme[2:4]), int(tme[4:6]))
+                            date = datetime.datetime.combine(day, tim)
 
                             packet = rctVehiclePacket(lat, lon, 0, hdg, date)
 

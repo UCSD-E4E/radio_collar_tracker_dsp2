@@ -1,20 +1,22 @@
-from mimetypes import init
-import threading
-import subprocess
-import time
-import os
-import serial
 import datetime
-import json
 import glob
+import json
+import logging
+import logging.handlers
+import os
 import re
-import select
-from radio_collar_tracker_dsp2 import PingFinder
+import subprocess
+import threading
+import time
 from enum import Enum, IntEnum
-import yaml
+from pathlib import Path
 
-from RCTComms.comms import (mavComms, rctBinaryPacketFactory, EVENTS)
+import serial
+import yaml
+from radio_collar_tracker_dsp2 import PingFinder
+from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
+
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
 
@@ -24,7 +26,7 @@ stop_threads = False
 
 output_dir = None
 testDir = "../testOutput"
-testGPS = True
+testGPS = False
 
 class GPS_STATES(IntEnum):
 	get_tty = 0
@@ -61,9 +63,32 @@ class RCT_STATES(Enum):
 
 class RCTRun:
     def __init__(self, tcpport: int, test = False):
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+
+        if os.getuid() == 0:
+            log_dest = Path('/var/log/rct.log')
+        else:
+            log_dest = Path('/tmp/rct.log')
+        log_file_handler = logging.handlers.RotatingFileHandler(log_dest, maxBytes=5*1024*1024, backupCount=5)
+        log_file_handler.setLevel(logging.DEBUG)
+
+        root_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+        log_file_handler.setFormatter(root_formatter)
+        root_logger.addHandler(log_file_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.WARN)
+
+        error_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+        console_handler.setFormatter(error_formatter)
+        root_logger.addHandler(console_handler)
+        logging.Formatter.converter = time.gmtime
+
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
+        logging.debug("RCTRun init: created UIB")
         self.cmdListener = None
         self.test = test
         self.tcpport = tcpport
@@ -79,9 +104,13 @@ class RCTRun:
 
 
         self.init_comms_thread.start()
+        logging.debug("RCTRun init: started comms thread")
         self.init_SDR_thread.start()
+        logging.debug("RCTRun init: started SDR thread")
         self.init_output_thread.start()
+        logging.debug("RCTRun init: started output thread")
         self.init_gps_thread.start()
+        logging.debug("RCTRun init: started GPS thread")
 
         self.doRun = True
 
@@ -92,6 +121,7 @@ class RCTRun:
     def initComms(self):
         if self.cmdListener is None:
             self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            logging.debug("CommandListener initialized")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
 
@@ -111,7 +141,9 @@ class RCTRun:
             if not self.test:
                 meta_files = glob.glob(os.path.join(output_dir, 'RUN_*'))
                 if len(meta_files) > 0:
-                    run_num = int(re.sub("[^0-9]", "", sorted(meta_files)[-1])) + 1
+                    run_num = int(re.sub("[^0-9]", "", sorted(meta_files)[-1].replace(output_dir, ''))) + 1
+                    logging.debug("Run Num:")
+                    logging.debug(run_num)
                 else:
                     run_num = 1
             run_dir = os.path.join(output_dir, 'RUN_%06d' % (run_num))
@@ -132,23 +164,36 @@ class RCTRun:
 
             #TODO add dynamic sdr_record
 
-            if not self.test:
+            if True:
+                logging.debug("Enterring start pingFinder")
                 self.ping_finder = PingFinder()
-                self.ping_finder.gain = self.cmdListener.options.getOption("gain")
-                self.ping_finder.sampling_rate = self.cmdListener.options.getOption("sampling_freq")
-                self.ping_finder.center_frequency = self.cmdListener.options.getOption("center_freq")
+                logging.debug("Enterring start pingFinder1")
+                self.ping_finder.gain = self.cmdListener.options.getOption("SDR_gain")
+                logging.debug("Enterring start pingFinder2")
+                self.ping_finder.sampling_rate = self.cmdListener.options.getOption("SDR_samplingFreq")
+                logging.debug("Enterring start pingFinder3")
+                self.ping_finder.center_frequency = self.cmdListener.options.getOption("SDR_centerFreq")
+                logging.debug("Enterring start pingFinder4")
                 self.ping_finder.run_num = run_num
+                logging.debug("Enterring start pingFinder5")
                 self.ping_finder.enable_test_data = False
-                self.ping_finder.output_dir = self.cmdListener.options.getOption("output_dir")
-                self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("ping_width_ms")
-                self.ping_finder.ping_min_snr = self.cmdListener.options.getOption("ping_min_snr")
-                self.ping_finder.ping_max_len_mult = self.cmdListener.options.getOption("ping_max_len_mult")
-                self.ping_finder.ping_min_len_mult = self.cmdListener.options.getOption("ping_min_len_mult")
-                self.ping_finder.target_frequencies = self.cmdListener.options.getOption("frequencies")
+                logging.debug("Enterring start pingFinder6")
+                self.ping_finder.output_dir = self.cmdListener.options.getOption("SYS_outputDir")
+                logging.debug("Enterring start pingFinder7")
+                self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
+                logging.debug("Enterring start pingFinder8")
+                self.ping_finder.ping_min_snr = self.cmdListener.options.getOption("DSP_pingSNR")
+                logging.debug("Enterring start pingFinder9")
+                self.ping_finder.ping_max_len_mult = self.cmdListener.options.getOption("DSP_pingMax")
+                logging.debug("Enterring start pingFinder10")
+                self.ping_finder.ping_min_len_mult = self.cmdListener.options.getOption("DSP_pingMin")
+                logging.debug("Enterring start pingFinder11")
+                self.ping_finder.target_frequencies = self.cmdListener.options.getOption("TGT_frequencies")
 
                 self.ping_finder.register_callback(self.UIB_Singleton.sendPing)
 
                 self.ping_finder.start()
+                logging.debug("Started pingFinder")
 
 
 
@@ -168,6 +213,8 @@ class RCTRun:
 
         if testGPS:
             self.UIB_Singleton.sensorState = GPS_STATES.rdy
+            logging.debug("Sensor State:")
+            logging.debug(self.UIB_Singleton.sensorState)
             return
 
         while not GPSInitialized:
@@ -348,6 +395,8 @@ class RCTRun:
 
 def main():
     global stop_threads
+    logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
+    logging.debug("starting in main")
     stop_threads = False
     RCTRun(tcpport=9000)
 

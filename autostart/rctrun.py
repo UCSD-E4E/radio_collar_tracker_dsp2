@@ -85,6 +85,8 @@ class RCTRun:
         root_logger.addHandler(console_handler)
         logging.Formatter.converter = time.gmtime
 
+        logging.debug("Started Payload")
+
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)

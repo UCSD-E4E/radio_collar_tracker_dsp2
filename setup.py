@@ -131,10 +131,11 @@ setup(
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         'pyserial',
         'RCTComms',
+        'pyyaml',
     ],
     entry_points={
         'console_scripts':[

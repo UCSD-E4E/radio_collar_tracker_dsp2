@@ -47,17 +47,18 @@ cd ../radio_collar_tracker_dsp2
 git submodule update --init --recursive
 python -m pip install .
 
-sudo echo "[Unit]" > /lib/systemd/system/rctrun.service
-sudo echo "Description=RCT OBC Runner" >> /lib/systemd/system/rctrun.service
-sudo echo "Requires=network-online.target local-fs.target" >> /lib/systemd/system/rctrun.service
-sudo echo "" >> /lib/systemd/system/rctrun.service
-sudo echo "[Service]" >> /lib/systemd/system/rctrun.service
-sudo echo "Type=idle" >> /lib/systemd/system/rctrun.service
+echo "[Unit]" > /tmp/rctrun.service
+echo "Description=RCT OBC Runner" >> /tmp/rctrun.service
+echo "Requires=network-online.target local-fs.target" >> /tmp/rctrun.service
+echo "" >> /tmp/rctrun.service
+echo "[Service]" >> /tmp/rctrun.service
+echo "Type=idle" >> /tmp/rctrun.service
 rctrun_path=$(which rctrun)
-sudo echo "ExecStart=$rctrun_path" >> /lib/systemd/system/rctrun.service
-sudo echo "" >> /lib/systemd/system/rctrun.service
-sudo echo "[Install]" >> /lib/systemd/system/rctrun.service
-sudo echo "WantedBy=multi-user.target" >> /lib/systemd/system/rctrun.service
+echo "ExecStart=$rctrun_path" >> /tmp/rctrun.service
+echo "" >> /tmp/rctrun.service
+echo "[Install]" >> /tmp/rctrun.service
+echo "WantedBy=multi-user.target" >> /tmp/rctrun.service
+sudo cp /tmp/rctrun.service /lib/systemd/system/rctrun.service
 sudo chmod 644 /lib/systemd/system/rctrun.service
 sudo systemctl daemon-reload
 sudo systemctl enable rctrun.service

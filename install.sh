@@ -1,7 +1,7 @@
 #!/bin/bash
 sudo add-apt-repository ppa:ettusresearch/uhd
 sudo apt-get update
-sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev libuhd-dev uhd-host
+sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev libuhd-dev uhd-host git
 sudo python3 -m pip install six requests pyserial
 
 git clone https://github.com/airspy/airspyone_host.git
@@ -9,7 +9,6 @@ git clone https://github.com/greatscottgadgets/hackrf.git
 git clone https://github.com/UCSD-E4E/radio_collar_tracker_comms
 git clone https://github.com/UCSD-E4E/radio_collar_tracker_dsp2
 
-mkdir uhd/host/build
 mkdir airspyone_host/build
 mkdir hackrf/host/build
 

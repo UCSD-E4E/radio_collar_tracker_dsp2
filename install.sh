@@ -1,7 +1,9 @@
 #!/bin/bash
-sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev
+sudo add-apt-repository ppa:ettusresearch/uhd
+sudo apt-get update
+sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev libuhd-dev uhd-host
 sudo python3 -m pip install six requests pyserial
-git clone https://github.com/EttusResearch/uhd.git
+
 git clone https://github.com/airspy/airspyone_host.git
 git clone https://github.com/greatscottgadgets/hackrf.git
 git clone https://github.com/UCSD-E4E/radio_collar_tracker_comms
@@ -24,18 +26,6 @@ make -j
 sudo make install
 sudo ldconfig
 cd ../..
-
-cd uhd/host/build
-git checkout v4.2.0.1
-cmake -DENABLE_B100=OFF -DENABLE_X300=OFF -DENABLE_USRP1=OFF -DENABLE_USRP2=OFF -DENABLE_OCTOCLOCK=OFF -DENABLE_MPMD=OFF -DENABLE_EXAMPLES=OFF -DENABLE_MANUAL=OFF -DENABLE_TESTS=OFF ../
-make -j
-sudo make install
-sudo ldconfig
-sudo python3 /usr/local/lib/uhd/utils/uhd_images_downloader.py -t b2xx*
-sudo cp ../utils/uhd-usrp.rules /etc/udev/rules.d
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-cd ../../..
 
 cd radio_collar_tracker_dsp2
 python3 -m venv .venv

@@ -1,8 +1,8 @@
 #!/bin/bash
 sudo add-apt-repository -y ppa:ettusresearch/uhd
 sudo apt-get update
-sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev
-sudo python3 -m pip install -U six requests pyserial libuhd-dev uhd-host
+sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev libuhd-dev uhd-host
+sudo python3 -m pip install -U six requests pyserial
 if [ -d "/tmp/airspyone_host" ]
 then
     rm -rf /tmp/airspyone_host

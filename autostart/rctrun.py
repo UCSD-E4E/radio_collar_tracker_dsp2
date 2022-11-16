@@ -86,6 +86,7 @@ class RCTRun:
 
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
+        testGPS = self.get_var('GPS_mode')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         logging.debug("RCTRun init: created UIB")
         self.cmdListener = None

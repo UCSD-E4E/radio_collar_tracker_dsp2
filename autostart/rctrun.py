@@ -23,7 +23,6 @@ WAIT_COUNT = 60
 
 output_dir = None
 testDir = "../testOutput"
-testGPS = False
 
 class GPS_STATES(IntEnum):
 	get_tty = 0
@@ -206,12 +205,11 @@ class RCTRun:
 
         GPSInitialized = False
         counter = 0
-        msg_counter = 0
         tty_stream = None
 
         prev_gps = 0
 
-        if testGPS:
+        if self.UIB_Singleton.testMode:
             self.UIB_Singleton.sensorState = GPS_STATES.rdy
             logging.debug("Sensor State:")
             logging.debug(self.UIB_Singleton.sensorState)

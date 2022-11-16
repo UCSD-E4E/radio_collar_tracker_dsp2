@@ -244,9 +244,9 @@ class CommandListener(object):
             try:
                 now = datetime.datetime.now()
                 if (now - prevTime).total_seconds() > 1:
-                    heartbeatPacket = rctHeartBeatPacket(self.UIBoard.systemState, 
-                            self.UIBoard.sdrState, self.UIBoard.sensorState, 
-                            self.UIBoard.storageState, self.UIBoard.switch, now)
+                    heartbeatPacket = rctHeartBeatPacket(self.UIBoard.system_state, 
+                            self.UIBoard.sdr_state, self.UIBoard.sensor_state, 
+                            self.UIBoard.storage_state, self.UIBoard.switch, now)
 
                     msg = heartbeatPacket
                     self.port.sendToGCS(msg)
@@ -296,15 +296,15 @@ class CommandListener(object):
             print("Set start flag")
             self._sendAck(packet._pid, True)
         else:
-            if not (self.UIBoard.storageState == 4):
+            if not (self.UIBoard.storage_state == 4):
                 print("Storage not ready!")
-                print(self.UIBoard.storageState)
-            if not (self.UIBoard.sensorState == 3):
+                print(self.UIBoard.storage_state)
+            if not (self.UIBoard.sensor_state == 3):
                 print("GPS not ready!")
-                print(self.UIBoard.sensorState)
-            if not (self.UIBoard.sdrState == 3):
+                print(self.UIBoard.sensor_state)
+            if not (self.UIBoard.sdr_state == 3):
                 print("SDR not ready!")
-                print(self.UIBoard.sdrState)
+                print(self.UIBoard.sdr_state)
             self._sendAck(packet._pid, True)
 
     def _gotStopCmd(self, packet: rctSTOPCommand, addr):

@@ -1,10 +1,13 @@
 import datetime
-import serial
+import json
+import logging
 import threading
 import time
-import json
-import traceback
-from RCTComms.comms import (rctHeartBeatPacket, rctVehiclePacket, rctPingPacket, EVENTS)
+from typing import Any
+
+import serial
+from RCTComms.comms import (EVENTS, rctHeartBeatPacket, rctPingPacket,
+                            rctVehiclePacket)
 
 
 class UIBoard:
@@ -14,11 +17,15 @@ class UIBoard:
         store most recent GPS and Compass info
         Store most recent ping?
         '''
-        self.systemState = 0
-        self.sdrState = 0
-        self.sensorState = 0
-        self.storageState = 0
-        self.switch = 0
+        self.__log = logging.getLogger("UI Board")
+        self.__log.info("Initialized on %s at %d baud, mode=%s",
+            port, baud, str(testMode))
+
+        self._system_state = 0
+        self._sdr_state = 0
+        self._sensor_state = 0
+        self._storage_state = 0
+        self._switch = 0
 
         self.__sensorCallbacks = {}
         self.__sensorCallbacks[EVENTS.DATA_VEHICLE] = []
@@ -35,11 +42,90 @@ class UIBoard:
         self.run = False
         self.listener = threading.Thread(target=self.uibListener)
         self.recentLoc = None
+
         #self.sender = threading.Thread(target=self.doHeartbeat)
 
         #self.sender.start()
 
+    @property
+    def system_state(self) -> int:
+        """System state indicator
 
+        Returns:
+            int: System state
+        """
+        return self._system_state
+
+    @system_state.setter
+    def system_state(self, state: Any) -> None:
+        if not isinstance(int, state):
+            raise RuntimeError("Illegal type")
+        self._system_state = state
+        self.__log.warning("System state set to %d", state)
+
+    @property
+    def sdr_state(self) -> int:
+        """Software Defined Radio state indicator
+
+        Returns:
+            int: Software Defined Radio state
+        """
+        return self._sdr_state
+
+    @sdr_state.setter
+    def sdr_state(self, state: Any) -> None:
+        if not isinstance(int, state):
+            raise RuntimeError("Illegal type")
+        self._sdr_state = state
+        self.__log.warning("SDR state set to %d", state)
+
+    @property
+    def sensor_state(self) -> int:
+        """External sensor state indicator
+
+        Returns:
+            int: External sensors state
+        """
+        return self._sensor_state
+
+    @sensor_state.setter
+    def sensor_state(self, state: Any) -> None:
+        if not isinstance(int, state):
+            raise RuntimeError('Illegal type')
+        self._sensor_state = state
+        self.__log.warning("Sensor state set to %d", state)
+
+    @property
+    def storage_state(self) -> int:
+        """Storage state indicator
+
+        Returns:
+            int: Storage state
+        """
+        return self._storage_state
+
+    @storage_state.setter
+    def storage_state(self, state: Any) -> None:
+        if not isinstance(int, state):
+            raise RuntimeError('Illegal type')
+        self._storage_state = state
+        self.__log.warning("Storage state set to %d", state)
+
+    @property
+    def switch(self) -> int:
+        """Run switch state indicator
+
+        Returns:
+            int: Run switch
+        """
+        return self._switch
+
+    @switch.setter
+    def switch(self, state: Any) -> None:
+        if not isinstance(int, state):
+            raise RuntimeError('Illegal type')
+        self._switch = state
+        self.__log.warning("Switch state set to %d", state)
 
     def sendStatus(self, packet: rctHeartBeatPacket):
         '''
@@ -137,9 +223,9 @@ class UIBoard:
                     heartbeatPacket['heartbeat'] = {}
                     heartbeatPacket['heartbeat']['time'] = time.mktime(now.timetuple())
                     heartbeatPacket['heartbeat']['id'] = 'mav'
-                    status_string = "%d%d%d%d%d" % (self.systemState, 
-                        self.sdrState, self.sensorState, 
-                        self.storageState, self.switch)
+                    status_string = "%d%d%d%d%d" % (self.system_state, 
+                        self.sdr_state, self.sensor_state, 
+                        self.storage_state, self.switch)
                     heartbeatPacket['heartbeat']['status'] = status_string
                     msg = json.dumps(heartbeatPacket)
                     #self.sock.sendto(msg.encode('utf-8'), sendTarget)
@@ -179,4 +265,4 @@ class UIBoard:
         self.__sensorCallbacks[event].append(callback)
 
     def ready(self):
-        return (self.sdrState == 3) and (self.sensorState == 3) and (self.storageState == 4)
+        return (self.sdr_state == 3) and (self.sensor_state == 3) and (self.storage_state == 4)

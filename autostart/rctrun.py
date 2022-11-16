@@ -201,7 +201,7 @@ class RCTRun:
 
     def initGPS(self, test = False):
 
-        self.UIB_Singleton.sensorState = GPS_STATES.get_tty
+        self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
 
         GPSInitialized = False
         counter = 0
@@ -210,13 +210,12 @@ class RCTRun:
         prev_gps = 0
 
         if self.UIB_Singleton.testMode:
-            self.UIB_Singleton.sensorState = GPS_STATES.rdy
-            logging.debug("Sensor State:")
-            logging.debug(self.UIB_Singleton.sensorState)
+            self.UIB_Singleton.sensor_state = GPS_STATES.rdy
+            logging.debug(f"External Sensor State: {self.UIB_Singleton.sensor_state}")
             return
 
         while not GPSInitialized:
-            if self.UIB_Singleton.sensorState == GPS_STATES.get_tty:
+            if self.UIB_Singleton.sensor_state == GPS_STATES.get_tty:
                 tty_device = self.get_var('GPS_device')
                 tty_device = self.serialPort
                 tty_baud = self.get_var('GPS_baud')
@@ -224,62 +223,62 @@ class RCTRun:
                     try:
                         tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
                     except serial.SerialException as e:
-                        self.UIB_Singleton.sensorState = GPS_STATES.fail
+                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: bad serial!")
                         print(e)
                         continue
                     if tty_stream is None:
-                        self.UIB_Singleton.sensorState = GPS_STATES.fail
+                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: no serial!")
                         continue
                     else:
-                        self.UIB_Singleton.sensorState = GPS_STATES.get_msg
+                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                 else:
-                    self.UIB_Singleton.sensorState = GPS_STATES.get_msg
+                    self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
 
-            elif self.UIB_Singleton.sensorState == GPS_STATES.get_msg:
+            elif self.UIB_Singleton.sensor_state == GPS_STATES.get_msg:
                 if not test:
                     try:
                         line = tty_stream.readline().decode("utf-8")
                     except serial.serialutil.SerialException as e:
-                        self.UIB_Singleton.sensorState = GPS_STATES.fail
+                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: no serial!")
                         continue
                     if line is not None and line != "":
                         msg = None
                         try:
                             msg = json.loads(line)
-                            self.UIB_Singleton.sensorState = GPS_STATES.rdy
+                            self.UIB_Singleton.sensor_state = GPS_STATES.rdy
                         except json.JSONDecodeError as e:
-                            self.UIB_Singleton.sensorState = GPS_STATES.fail
+                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: bad message!")
-                            self.UIB_Singleton.sensorState = GPS_STATES.get_msg
+                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                             continue
                     else:
-                        self.UIB_Singleton.sensorState = GPS_STATES.get_msg
+                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                 else:
                     time.sleep(1)
-                    self.UIB_Singleton.sensorState = GPS_STATES.rdy
-            elif self.UIB_Singleton.sensorState == GPS_STATES.wait_recycle:
+                    self.UIB_Singleton.sensor_state = GPS_STATES.rdy
+            elif self.UIB_Singleton.sensor_state == GPS_STATES.wait_recycle:
                 time.sleep(1)
                 if counter > WAIT_COUNT / 2:
-                    self.UIB_Singleton.sensorState = GPS_STATES.fail
+                    self.UIB_Singleton.sensor_state = GPS_STATES.fail
                     print("GPS fail: bad state!")
                     continue
                 else:
-                    self.UIB_Singleton.sensorState = GPS_STATES.get_msg
-            elif self.UIB_Singleton.sensorState == GPS_STATES.fail:
+                    self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
+            elif self.UIB_Singleton.sensor_state == GPS_STATES.fail:
                 time.sleep(10)
-                self.UIB_Singleton.sensorState = GPS_STATES.get_tty
+                self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
             else: 
-                self.UIB_Singleton.sensorState = GPS_STATES.rdy
+                self.UIB_Singleton.sensor_state = GPS_STATES.rdy
                 GPSInitialized = True
                 print("GPS: Initialized")
                 if not test:
                     try:
                         line = tty_stream.readline().decode("utf-8")
                     except serial.serialutil.SerialException as e:
-                        self.UIB_Singleton.sensorState = GPS_STATES.fail
+                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: no serial!")
                         continue
                     if line is not None and line != "":
@@ -288,10 +287,10 @@ class RCTRun:
                             msg = json.loads(line)
                             GPSInitialized = True
                         except json.JSONDecodeError as e:
-                            self.UIB_Singleton.sensorState = GPS_STATES.fail
+                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: bad message!")
                             print(e)
-                            self.UIB_Singleton.sensorState = GPS_STATES.get_msg
+                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                             continue
                 else:
                     time.sleep(1)
@@ -300,7 +299,7 @@ class RCTRun:
                     continue
                 else:
                     if (current_gps - prev_gps).total_seconds() > 5:
-                        self.UIB_Singleton.sensorState = GPS_STATES.wait_recycle
+                        self.UIB_Singleton.sensor_state = GPS_STATES.wait_recycle
                 prev_gps = current_gps
 
 
@@ -315,15 +314,15 @@ class RCTRun:
 
             if devicesFound == False:
                 if not test:
-                    self.UIB_Singleton.sdrState = SDR_INIT_STATES.find_devices
+                    self.UIB_Singleton.sdr_state = SDR_INIT_STATES.find_devices
                     uhd_find_dev_retval = subprocess.call(['/usr/bin/uhd_find_devices', '--args=\"type=b200\"'], stdout=devnull, stderr=devnull)
                     if uhd_find_dev_retval == 0:
                         devicesFound = True
-                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.usrp_probe
+                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.usrp_probe
                         print("SDR: Devices Found")
                     else:
                         time.sleep(1)
-                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.wait_recycle
+                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.wait_recycle
             elif usrpDeviceInitialized == False:
                 if not test:
                     uhd_usrp_probe_retval = subprocess.call(['/usr/bin/uhd_usrp_probe', '--args=\"type=b200\"', '--init-only'], stdout=devnull, stderr=devnull)
@@ -331,9 +330,9 @@ class RCTRun:
                         print("SDR: USRP Initialized")
                         usrpDeviceInitialized = True
                         initialized = True
-                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.rdy
+                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.rdy
                     else:
-                        self.UIB_Singleton.sdrState = SDR_INIT_STATES.fail
+                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.fail
                         devicesFound = False
                         usrpDeviceInitialized = False
          
@@ -346,7 +345,7 @@ class RCTRun:
         outputDirFound = False
         enoughSpace = False
 
-        self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.get_output_dir
+        self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.get_output_dir
 
         while not outputDirInitialized:
             if not dirNameFound:
@@ -355,16 +354,16 @@ class RCTRun:
                     dirNameFound = True
                     print("OUTPUTDIR_INIT:\trctConfig Directory:")
                     print("OUTPUTDIR_INIT:\t" + output_dir)
-                    self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.check_output_dir
+                    self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_output_dir
             elif not outputDirFound:
                 if test:
                     output_dir = testDir
                 if os.path.isdir(output_dir):
                     outputDirFound = True
-                    self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.check_space
+                    self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_space
                 else:
                     time.sleep(10)
-                    self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.wait_recycle
+                    self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.wait_recycle
             elif not enoughSpace:
                 df = subprocess.Popen(['df', '-B1', output_dir], stdout=subprocess.PIPE)
                 output = df.communicate()[0].decode('utf-8')
@@ -372,12 +371,12 @@ class RCTRun:
                 if int(available) > 20 * 60 * 1500000 * 4:
                     enoughSpace = True
                     outputDirInitialized = True
-                    self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.rdy
+                    self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.rdy
                 else:
                     dirNameFound = False
                     outputDirFound = False
                     enoughSpace = False
-                    self.UIB_Singleton.storageState = OUTPUT_DIR_STATES.fail
+                    self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.fail
                     print("OUTPUTDIR_INIT:\tNOT ENOUGH STORAGE SPACE")
 
 

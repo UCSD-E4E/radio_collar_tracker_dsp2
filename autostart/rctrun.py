@@ -97,14 +97,22 @@ class RCTRun:
         self.delete_comms_thread = None
 
         self.init_comms_thread = threading.Thread(target=self.init_comms)
-        self.init_SDR_thread = threading.Thread(target=self.initSDR, kwargs={'test':test})
-        self.init_output_thread = threading.Thread(target=self.initOutput, kwargs={'test':test})
-        self.init_gps_thread = threading.Thread(target=self.initGPS, kwargs={'test':test})
-
 
         self.init_comms_thread.start()
         logging.debug("RCTRun init: started comms thread")
-        self.init_SDR_thread.start()
+
+        self.init_threads()
+
+    def init_threads(self):
+        """System Initialization thread execution
+        """
+        self.init_sdr_thread = threading.Thread(target=self.initSDR,
+            kwargs={'test':self.test})
+        self.init_output_thread = threading.Thread(target=self.initOutput,
+            kwargs={'test':self.test})
+        self.init_gps_thread = threading.Thread(target=self.initGPS,
+            kwargs={'test':self.test})
+        self.init_sdr_thread.start()
         logging.debug("RCTRun init: started SDR thread")
         self.init_output_thread.start()
         logging.debug("RCTRun init: started output thread")
@@ -113,7 +121,7 @@ class RCTRun:
 
         self.doRun = True
 
-        self.init_SDR_thread.join()
+        self.init_sdr_thread.join()
         self.init_output_thread.join()
         self.init_gps_thread.join()
         self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
@@ -126,13 +134,18 @@ class RCTRun:
             self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
-            self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
+            self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stop_run_cb)
 
 
-    def stopRun(self, packet, addr):
+    def stop_run_cb(self, packet, addr): # pylint: disable=unused-argument
+        """Callback for the stop recording command
+        """
+        self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
         self.doRun = False
         if self.ping_finder is not None:
             self.ping_finder.stop()
+        self.init_threads()
+
 
     def startReceived(self, packet, addr):
         self.run()
@@ -140,6 +153,7 @@ class RCTRun:
 
     def run(self):
         if self.cmdListener.startFlag:
+            self.UIB_Singleton.system_state = RCT_STATES.start.value
 
             if not self.test:
                 meta_files = glob.glob(os.path.join(output_dir, 'RUN_*'))
@@ -168,6 +182,7 @@ class RCTRun:
             #TODO add dynamic sdr_record
 
             if True:
+                self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
                 logging.debug("Enterring start pingFinder")
                 self.ping_finder = PingFinder()
                 logging.debug("Enterring start pingFinder1")

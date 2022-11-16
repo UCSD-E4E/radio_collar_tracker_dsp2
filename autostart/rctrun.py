@@ -116,6 +116,7 @@ class RCTRun:
         self.init_SDR_thread.join()
         self.init_output_thread.join()
         self.init_gps_thread.join()
+        self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
 
     def init_comms(self):
         """Sets up the connection configuration

@@ -76,7 +76,8 @@
 		},
 		"editor.rulers": [
 		80
-		]
+		],
+		"python.linting.pylintEnabled": true
 	},
 	"extensions": {
 		"recommendations": [

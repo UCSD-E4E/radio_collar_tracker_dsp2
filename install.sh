@@ -26,28 +26,28 @@ sudo apt-get update
 sudo apt-get install -y libuhd-dev uhd-host
 sudo uhd_images_downloader -t b2xx*
 
-cd $(cwd)
+cd "${cwd}"
 python3 -m venv .venv
 source .venv/bin/activate
 cd /tmp/radio_collar_tracker_comms
 python -m pip install -U .
-cd $(cwd)
+cd "${cwd}"
 git submodule update --init --recursive
 python -m pip install -U .
 
-sudo echo "[Unit]" > /lib/systemd/system/rctrun.service
-sudo echo "Description=RCT OBC Runner" >> /lib/systemd/system/rctrun.service
-sudo echo "Requires=network-online.target local-fs.target" >> /lib/systemd/system/rctrun.service
-sudo echo "" >> /lib/systemd/system/rctrun.service
-sudo echo "[Service]" >> /lib/systemd/system/rctrun.service
-sudo echo "Type=idle" >> /lib/systemd/system/rctrun.service
+sudo echo "[Unit]" | sudo tee /lib/systemd/system/rctrun.service
+sudo echo "Description=RCT OBC Runner" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "Requires=network-online.target local-fs.target" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "[Service]" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "Type=idle" | sudo tee -a /lib/systemd/system/rctrun.service
 rctrun_path=$(which rctrun)
-sudo echo "ExecStart=$rctrun_path" >> /lib/systemd/system/rctrun.service
-sudo echo "" >> /lib/systemd/system/rctrun.service
-sudo echo "[Install]" >> /lib/systemd/system/rctrun.service
-sudo echo "WantedBy=multi-user.target" >> /lib/systemd/system/rctrun.service
+sudo echo "ExecStart=$rctrun_path" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "[Install]" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "WantedBy=multi-user.target" | sudo tee -a /lib/systemd/system/rctrun.service
 sudo chmod 644 /lib/systemd/system/rctrun.service
 sudo systemctl daemon-reload
 sudo systemctl enable rctrun.service
 
-sudo cp $(cwd)/rct_config_sample /usr/local/etc/rct_config
+sudo cp ${cwd}/rct_config_sample /usr/local/etc/rct_config

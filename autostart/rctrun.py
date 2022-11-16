@@ -96,7 +96,7 @@ class RCTRun:
         self.ping_finder = None
         self.delete_comms_thread = None
 
-        self.init_comms_thread = threading.Thread(target=self.initComms)
+        self.init_comms_thread = threading.Thread(target=self.init_comms)
         self.init_SDR_thread = threading.Thread(target=self.initSDR, kwargs={'test':test})
         self.init_output_thread = threading.Thread(target=self.initOutput, kwargs={'test':test})
         self.init_gps_thread = threading.Thread(target=self.initGPS, kwargs={'test':test})
@@ -117,10 +117,13 @@ class RCTRun:
         self.init_output_thread.join()
         self.init_gps_thread.join()
 
-    def initComms(self):
+    def init_comms(self):
+        """Sets up the connection configuration
+        """
         if self.cmdListener is None:
-            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
             logging.debug("CommandListener initialized")
+            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stopRun)
 

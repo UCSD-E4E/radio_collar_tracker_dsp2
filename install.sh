@@ -4,7 +4,7 @@ sudo python3 -m pip install six requests pyserial
 git clone --depth 1 https://github.com/airspy/airspyone_host.git /tmp/airspyone_host
 git clone --depth 1 https://github.com/greatscottgadgets/hackrf.git /tmp/hackrf
 git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_comms /tmp/radio_collar_tracker_comms
-git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_dsp2 /tmp/radio_collar_tracker_dsp2
+cwd=$(pwd)
 
 mkdir /tmp/airspyone_host/build
 mkdir /tmp/hackrf/host/build
@@ -26,12 +26,12 @@ sudo apt-get update
 sudo apt-get install libuhd-dev uhd-host
 sudo uhd_images_downloader -t b2xx*
 
-cd /tmp/radio_collar_tracker_dsp2
+cd $(cwd)
 python3 -m venv .venv
 source .venv/bin/activate
 cd /tmp/radio_collar_tracker_comms
 python -m pip install .
-cd /tmp/radio_collar_tracker_dsp2
+cd $(cwd)
 git submodule update --init --recursive
 python -m pip install .
 
@@ -50,4 +50,4 @@ sudo chmod 644 /lib/systemd/system/rctrun.service
 sudo systemctl daemon-reload
 sudo systemctl enable rctrun.service
 
-sudo cp /tmp/radio_collar_tracker_dsp2/rct_config_sample /usr/local/etc/rct_config
+sudo cp $(cwd)/rct_config_sample /usr/local/etc/rct_config

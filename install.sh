@@ -61,4 +61,7 @@ sudo chmod 644 /lib/systemd/system/rctrun.service
 sudo systemctl daemon-reload
 sudo systemctl enable rctrun.service
 
-sudo cp ${cwd}/rct_config_sample /usr/local/etc/rct_config
+if [ ! -f /usr/local/etc/rct_config ]
+then
+    sudo cp ${cwd}/rct_config_sample /usr/local/etc/rct_config
+fi

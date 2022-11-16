@@ -1,4 +1,3 @@
-import datetime
 import glob
 import json
 import logging
@@ -323,7 +322,7 @@ class RCTRun:
             if devicesFound == False:
                 if not test:
                     self.UIB_Singleton.sdrState = SDR_INIT_STATES.find_devices
-                    uhd_find_dev_retval = subprocess.call(['/usr/local/bin/uhd_find_devices', '--args=\"type=b200\"'], stdout=devnull, stderr=devnull)
+                    uhd_find_dev_retval = subprocess.call(['/usr/bin/uhd_find_devices', '--args=\"type=b200\"'], stdout=devnull, stderr=devnull)
                     if uhd_find_dev_retval == 0:
                         devicesFound = True
                         self.UIB_Singleton.sdrState = SDR_INIT_STATES.usrp_probe
@@ -333,7 +332,7 @@ class RCTRun:
                         self.UIB_Singleton.sdrState = SDR_INIT_STATES.wait_recycle
             elif usrpDeviceInitialized == False:
                 if not test:
-                    uhd_usrp_probe_retval = subprocess.call(['/usr/local/bin/uhd_usrp_probe', '--args=\"type=b200\"', '--init-only'], stdout=devnull, stderr=devnull)
+                    uhd_usrp_probe_retval = subprocess.call(['/usr/bin/uhd_usrp_probe', '--args=\"type=b200\"', '--init-only'], stdout=devnull, stderr=devnull)
                     if uhd_usrp_probe_retval == 0:
                         print("SDR: USRP Initialized")
                         usrpDeviceInitialized = True

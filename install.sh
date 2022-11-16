@@ -1,10 +1,10 @@
 #!/bin/bash
 sudo apt-get install -y libboost-all-dev python3-pip python3-mako python3-venv libusb-1.0-0-dev cmake build-essential pkg-config libfftw3-dev python3-dev
 sudo python3 -m pip install six requests pyserial
-git clone https://github.com/airspy/airspyone_host.git /tmp/airspyone_host
-git clone https://github.com/greatscottgadgets/hackrf.git /tmp/hackrf
-git clone https://github.com/UCSD-E4E/radio_collar_tracker_comms /tmp/radio_collar_tracker_comms
-git clone https://github.com/UCSD-E4E/radio_collar_tracker_dsp2 /tmp/radio_collar_tracker_dsp2
+git clone --depth 1 https://github.com/airspy/airspyone_host.git /tmp/airspyone_host
+git clone --depth 1 https://github.com/greatscottgadgets/hackrf.git /tmp/hackrf
+git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_comms /tmp/radio_collar_tracker_comms
+git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_dsp2 /tmp/radio_collar_tracker_dsp2
 
 mkdir /tmp/airspyone_host/build
 mkdir /tmp/hackrf/host/build

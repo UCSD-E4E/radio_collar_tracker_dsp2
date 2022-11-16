@@ -21,8 +21,6 @@ from autostart.UIB_instance import UIBoard
 
 WAIT_COUNT = 60
 
-stop_threads = False
-
 output_dir = None
 testDir = "../testOutput"
 testGPS = False
@@ -315,9 +313,6 @@ class RCTRun:
         devnull = open('/dev/null', 'w')
 
         while not initialized:
-            global stop_threads
-            if stop_threads:
-                break
 
             if devicesFound == False:
                 if not test:
@@ -395,10 +390,6 @@ class RCTRun:
         
 
 def main():
-    global stop_threads
-    logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
-    logging.debug("starting in main")
-    stop_threads = False
     RCTRun(tcpport=9000)
 
 if __name__ == "__main__":

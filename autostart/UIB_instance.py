@@ -58,7 +58,7 @@ class UIBoard:
 
     @system_state.setter
     def system_state(self, state: Any) -> None:
-        if not isinstance(int, state):
+        if not isinstance(state, int):
             raise RuntimeError("Illegal type")
         self._system_state = state
         self.__log.warning("System state set to %d", state)
@@ -74,7 +74,7 @@ class UIBoard:
 
     @sdr_state.setter
     def sdr_state(self, state: Any) -> None:
-        if not isinstance(int, state):
+        if not isinstance(state, int):
             raise RuntimeError("Illegal type")
         self._sdr_state = state
         self.__log.warning("SDR state set to %d", state)
@@ -90,7 +90,7 @@ class UIBoard:
 
     @sensor_state.setter
     def sensor_state(self, state: Any) -> None:
-        if not isinstance(int, state):
+        if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._sensor_state = state
         self.__log.warning("Sensor state set to %d", state)
@@ -106,7 +106,7 @@ class UIBoard:
 
     @storage_state.setter
     def storage_state(self, state: Any) -> None:
-        if not isinstance(int, state):
+        if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._storage_state = state
         self.__log.warning("Storage state set to %d", state)
@@ -122,7 +122,7 @@ class UIBoard:
 
     @switch.setter
     def switch(self, state: Any) -> None:
-        if not isinstance(int, state):
+        if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._switch = state
         self.__log.warning("Switch state set to %d", state)

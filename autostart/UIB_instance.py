@@ -140,11 +140,13 @@ class UIBoard:
         Continuously listens to uib serial port for Sensor Packets
         '''
         if self.testMode:
+            lon = -117.23679
+            lat = 32.88534
             while self.run:
-                time.sleep(4)
+                time.sleep(1)
                 try:
-                    lon = -117.23679
-                    lat = 32.88534
+                    lon += 1e-4
+                    lat += 1e-4
                     hdg = 0
                     date = datetime.datetime.now()
                     packet = rctVehiclePacket(lat, lon, 0, hdg, date)

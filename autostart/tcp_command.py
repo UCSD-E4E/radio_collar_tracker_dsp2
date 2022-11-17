@@ -363,6 +363,7 @@ class CommandListener(object):
     def _gotSetOptsCmd(self, packet: rctSETOPTCommand, addr):
         opts = packet.options
         self.options.setOptions(opts)
+        self.options.writeOptions()
         options = self.options.getCommsOptions()
         msg = rctOptionsPacket(packet.scope, **options)
         self._sendAck(0x05, True)

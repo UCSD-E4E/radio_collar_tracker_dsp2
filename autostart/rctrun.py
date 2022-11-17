@@ -241,10 +241,10 @@ class RCTRun:
                 if not test:
                     try:
                         tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
-                    except serial.SerialException as e:
+                    except serial.SerialException as exc:
                         self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: bad serial!")
-                        print(e)
+                        print(exc)
                         continue
                     if tty_stream is None:
                         self.UIB_Singleton.sensor_state = GPS_STATES.fail
@@ -259,7 +259,7 @@ class RCTRun:
                 if not test:
                     try:
                         line = tty_stream.readline().decode("utf-8")
-                    except serial.serialutil.SerialException as e:
+                    except serial.serialutil.SerialException as exc:
                         self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: no serial!")
                         continue
@@ -268,7 +268,7 @@ class RCTRun:
                         try:
                             msg = json.loads(line)
                             self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                        except json.JSONDecodeError as e:
+                        except json.JSONDecodeError as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: bad message!")
                             self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
@@ -296,7 +296,7 @@ class RCTRun:
                 if not test:
                     try:
                         line = tty_stream.readline().decode("utf-8")
-                    except serial.serialutil.SerialException as e:
+                    except serial.serialutil.SerialException as exc:
                         self.UIB_Singleton.sensor_state = GPS_STATES.fail
                         print("GPS fail: no serial!")
                         continue
@@ -305,10 +305,10 @@ class RCTRun:
                         try:
                             msg = json.loads(line)
                             GPSInitialized = True
-                        except json.JSONDecodeError as e:
+                        except json.JSONDecodeError as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: bad message!")
-                            print(e)
+                            print(exc)
                             self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                             continue
                 else:
@@ -323,38 +323,53 @@ class RCTRun:
 
 
     def initSDR(self, test = False):
-
+        log = logging.getLogger("SDR Init")
         initialized = False
         devicesFound = False
         usrpDeviceInitialized = False
-        devnull = open('/dev/null', 'w')
+        try:
+            while not initialized:
 
-        while not initialized:
-
-            if devicesFound == False:
-                if not test:
-                    self.UIB_Singleton.sdr_state = SDR_INIT_STATES.find_devices
-                    uhd_find_dev_retval = subprocess.call(['/usr/bin/uhd_find_devices', '--args=\"type=b200\"'], stdout=devnull, stderr=devnull)
-                    if uhd_find_dev_retval == 0:
-                        devicesFound = True
-                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.usrp_probe
-                        print("SDR: Devices Found")
-                    else:
-                        time.sleep(1)
-                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.wait_recycle
-            elif usrpDeviceInitialized == False:
-                if not test:
-                    uhd_usrp_probe_retval = subprocess.call(['/usr/bin/uhd_usrp_probe', '--args=\"type=b200\"', '--init-only'], stdout=devnull, stderr=devnull)
-                    if uhd_usrp_probe_retval == 0:
-                        print("SDR: USRP Initialized")
-                        usrpDeviceInitialized = True
-                        initialized = True
-                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.rdy
-                    else:
-                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.fail
-                        devicesFound = False
-                        usrpDeviceInitialized = False
-         
+                if devicesFound == False:
+                    if not test:
+                        self.UIB_Singleton.sdr_state = SDR_INIT_STATES.find_devices
+                        uhd_find_dev_retval = subprocess.run([
+                            '/usr/bin/uhd_find_devices',
+                            '--args=\"type=b200\"'],
+                            capture_output=True,
+                            encoding='utf-8')
+                        if uhd_find_dev_retval.returncode == 0:
+                            devicesFound = True
+                            self.UIB_Singleton.sdr_state = SDR_INIT_STATES.usrp_probe
+                            log.info("Devices Found")
+                        else:
+                            log.error("Devices not found: %s", uhd_find_dev_retval.stdout)
+                            time.sleep(2)
+                            self.UIB_Singleton.sdr_state = SDR_INIT_STATES.wait_recycle
+                elif usrpDeviceInitialized == False:
+                    if not test:
+                        uhd_usrp_probe_retval = subprocess.run([
+                            '/usr/bin/uhd_usrp_probe',
+                            '--args=\"type=b200\"',
+                            '--init-only'],
+                            capture_output=True,
+                            encoding='utf-8',
+                            env={
+                                "HOME": "/tmp"
+                            })
+                        if uhd_usrp_probe_retval.returncode == 0:
+                            log.info("USRP Initialized")
+                            usrpDeviceInitialized = True
+                            initialized = True
+                            self.UIB_Singleton.sdr_state = SDR_INIT_STATES.rdy
+                        else:
+                            log.error("USRP Initialized: %s", uhd_usrp_probe_retval.stderr)
+                            self.UIB_Singleton.sdr_state = SDR_INIT_STATES.fail
+                            devicesFound = False
+                            usrpDeviceInitialized = False
+        except Exception as exc:
+            log.exception()
+            raise exc
 
     def initOutput(self, test):
         global output_dir

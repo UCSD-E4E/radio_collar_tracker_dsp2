@@ -59,9 +59,9 @@ jobs:
         cd $GITHUB_WORKSPACE
         git submodule update --init --recursive
         python setup.py bdist_wheel
-    - name: Download a Build Artifact
-      uses: actions/download-artifact@v3.0.1
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3
       with:
         # Destination path
-        path: dist/
+        path: ./dist/*.whl
         

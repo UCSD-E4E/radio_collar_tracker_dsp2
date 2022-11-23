@@ -52,5 +52,10 @@ jobs:
         python -m pip install -U .
         cd $GITHUB_WORKSPACE
         git submodule update --init --recursive
-        python -m pip install -U .
+        python setup.py bdist_wheel
+    - name: Download a Build Artifact
+      uses: actions/download-artifact@v3.0.1
+      with:
+        # Destination path
+        path: dist/
         

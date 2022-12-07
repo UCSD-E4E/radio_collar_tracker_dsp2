@@ -132,7 +132,13 @@ class UIBoard:
         Function to send Status to the UI Board
         '''
         with serial.Serial(port=self.port, baudrate=self.baud) as ser:
-            ser.write(packet.to_bytes)
+            # ser.write(packet.to_bytes())
+            output = {
+                'STR': packet.storageState,
+                'SYS': packet.systemState,
+                'SDR': packet.sdrState
+            }
+            ser.write(json.dumps(output).encode())
 
 
     def uibListener(self):

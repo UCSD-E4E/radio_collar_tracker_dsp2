@@ -384,7 +384,7 @@ class RCTRun:
         while not outputDirInitialized:
             if not dirNameFound:
                 output_dir = self.get_var('SYS_outputDir')
-                if output_dir is not None:
+                if output_dir is not None and os.path.ismount(output_dir):
                     dirNameFound = True
                     print("OUTPUTDIR_INIT:\trctConfig Directory:")
                     print("OUTPUTDIR_INIT:\t" + output_dir)

@@ -166,7 +166,7 @@ std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)
 }
 
 #if USE_PYBIND11 == 1
-PYBIND11_MODULE(radio_collar_tracker_dsp2, m) {
+PYBIND11_MODULE(RCTDSP2, m) {
     auto pf = py::class_<RCT::PingFinder>(m, "PingFinder", "Ping Finder class. "
         " This class processes SDR data to detect pings and return them via "
         "callbacks");

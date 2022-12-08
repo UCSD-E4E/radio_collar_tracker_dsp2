@@ -12,7 +12,7 @@ from pathlib import Path
 
 import serial
 import yaml
-from radio_collar_tracker_dsp2 import PingFinder
+from RCTDSP2 import PingFinder
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
 

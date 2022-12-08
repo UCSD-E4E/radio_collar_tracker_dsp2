@@ -52,6 +52,7 @@ sudo echo "Description=RCT OBC Runner" | sudo tee -a /lib/systemd/system/rctrun.
 sudo echo "Requires=network-online.target local-fs.target" | sudo tee -a /lib/systemd/system/rctrun.service
 sudo echo "" | sudo tee -a /lib/systemd/system/rctrun.service
 sudo echo "[Service]" | sudo tee -a /lib/systemd/system/rctrun.service
+sudo echo "User=root" | sudo tee -a /lib/systemd/system/rctrun.service
 sudo echo "Type=idle" | sudo tee -a /lib/systemd/system/rctrun.service
 rctrun_path=$(which rctrun)
 sudo echo "ExecStart=$rctrun_path" | sudo tee -a /lib/systemd/system/rctrun.service

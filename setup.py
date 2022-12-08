@@ -3,8 +3,10 @@ import re
 import subprocess
 import sys
 
-from setuptools import Extension, setup, find_packages
+from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
+
+from autostart import __VERSION__
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -120,13 +122,13 @@ class CMakeBuild(build_ext):
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="radio_collar_tracker_dsp2",
-    version="0.0.0.3",
+    name="RCTDSP2",
+    version=__VERSION__,
     author="Nathan Hui",
     author_email="nthui@eng.ucsd.edu",
     description="RCT SDR interface",
     long_description="",
-    ext_modules=[CMakeExtension("radio_collar_tracker_dsp2")],
+    ext_modules=[CMakeExtension("RCTDSP2")],
     packages=find_packages(),
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,

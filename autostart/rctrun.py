@@ -216,6 +216,7 @@ class RCTRun:
                     logging.debug("Started pingFinder")
         except Exception as exc:
             log.exception(exc)
+            raise exc
 
 
 
@@ -327,6 +328,7 @@ class RCTRun:
                     prev_gps = current_gps
         except Exception as exc:
             log.exception(exc)
+            raise exc
 
     def initSDR(self, test = False):
         log = logging.getLogger("SDR Init")
@@ -421,6 +423,7 @@ class RCTRun:
                         print("OUTPUTDIR_INIT:\tNOT ENOUGH STORAGE SPACE")
         except Exception as exc:
             log.exception(exc)
+            raise exc
 
 
     def get_var(self, var: str):

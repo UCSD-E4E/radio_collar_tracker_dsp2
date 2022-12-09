@@ -1,33 +1,41 @@
 #!/usr/bin/env python3
 
-from curses.ascii import CR
-from re import I
-import socket
-import os
-import json
 import datetime
-import time
-import threading
+import glob
+import json
+import os
 import select
+import socket
 import subprocess
 import sys
-import glob
-import yaml
+import threading
+import time
 import traceback
-from autostart.UIB_instance import UIBoard
+from curses.ascii import CR
 from enum import IntEnum
-from RCTComms.comms import (mavComms, rctBinaryPacketFactory, rctHeartBeatPacket, rctFrequenciesPacket, rctBinaryPacket, rctExceptionPacket, 
-    rctOptionsPacket, rctUpgradeStatusPacket, rctSETOPTCommand, rctUPGRADECommand, rctSETFCommand, rctGETFCommand, rctGETOPTCommand, rctSTARTCommand,
-    rctSTOPCommand, rctACKCommand, EVENTS)
+from pathlib import Path
+from re import I
+
+import yaml
+from RCTComms.comms import (EVENTS, mavComms, rctACKCommand, rctBinaryPacket,
+                            rctBinaryPacketFactory, rctExceptionPacket,
+                            rctFrequenciesPacket, rctGETFCommand,
+                            rctGETOPTCommand, rctHeartBeatPacket,
+                            rctOptionsPacket, rctSETFCommand, rctSETOPTCommand,
+                            rctSTARTCommand, rctSTOPCommand, rctUPGRADECommand,
+                            rctUpgradeStatusPacket)
 from RCTComms.transport import RCTTCPClient, RCTTCPServer
+
+from autostart.UIB_instance import UIBoard
+
 
 class COMMS_STATES(IntEnum):
     disconnected = 0
     connected = 1
 
 class RCTOpts(object):
-    def __init__(self):
-        self._configFile = '/usr/local/etc/rct_config'
+    def __init__(self, *, config_path: Path = Path('/usr/local/etc/rct_config')):
+        self._configFile = config_path
         self.options = ['DSP_pingWidth',
                 'DSP_pingMin',
                 'DSP_pingMax',
@@ -178,7 +186,10 @@ class RCTOpts(object):
 
 class CommandListener(object):
     """docstring for CommandListener"""
-    def __init__(self, UIboard: UIBoard, port):
+    def __init__(self,
+            UIboard: UIBoard,
+            port: int, *,
+            config_path: Path = Path('/usr/local/etc/rct_config')):
         super(CommandListener, self).__init__()
         self.sock = RCTTCPServer(port)
         self.port = mavComms(self.sock)
@@ -197,7 +208,7 @@ class CommandListener(object):
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()
 
-        self.options = RCTOpts()
+        self.options = RCTOpts(config_path=config_path)
 
         self.setup()
 

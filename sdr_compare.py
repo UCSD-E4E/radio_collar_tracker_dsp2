@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from radio_collar_tracker_dsp2 import PingFinder
+from RCTDSP2 import PingFinder
 
 callback_called = 0
 

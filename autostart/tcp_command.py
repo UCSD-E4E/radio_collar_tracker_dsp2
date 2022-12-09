@@ -200,9 +200,10 @@ class CommandListener(object):
         self.newRun = False
         self._run = True
         
-        self.state = COMMS_STATES.connected
+        self.state = COMMS_STATES.disconnected
         self.sender = threading.Thread(target=self._sender)
         self.reconnect = threading.Thread(target=self._reconnectComms)
+
         self.startFlag = False
         self.UIBoard = UIboard
         self.UIBoard.switch = 0
@@ -250,6 +251,8 @@ class CommandListener(object):
 
     def _sender(self):
         prevTime = datetime.datetime.now()
+
+        self.port.port_open_event.wait()
 
         while (self.state == COMMS_STATES.connected):
             try:

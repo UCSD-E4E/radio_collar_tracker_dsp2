@@ -1,3 +1,5 @@
+"""RCT DSP2 setup
+"""
 import os
 import re
 import subprocess
@@ -21,13 +23,21 @@ PLAT_TO_CMAKE = {
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
 class CMakeExtension(Extension):
+    """CMake Build Extension
+
+    """
+    # pylint: disable=too-few-public-methods
     def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
 
 class CMakeBuild(build_ext):
+    """CMake BUild Configuration
+
+    """
     def build_extension(self, ext):
+        # pylint: disable=too-many-branches
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
 
         # required for auto-detection & inclusion of auxiliary "native" libs
@@ -66,7 +76,7 @@ class CMakeBuild(build_ext):
             # 3.15+.
             if not cmake_generator:
                 try:
-                    import ninja  # noqa: F401
+                    import ninja  # pylint: disable=import-outside-toplevel,unused-import
 
                     cmake_args += ["-GNinja"]
                 except ImportError:
@@ -75,10 +85,10 @@ class CMakeBuild(build_ext):
         else:
 
             # Single config generators are handled "normally"
-            single_config = any(x in cmake_generator for x in {"NMake", "Ninja"})
+            single_config = any(x in cmake_generator for x in ("NMake", "Ninja"))
 
             # CMake allows an arch-in-generator style for backward compatibility
-            contains_arch = any(x in cmake_generator for x in {"ARM", "Win64"})
+            contains_arch = any(x in cmake_generator for x in ("ARM", "Win64"))
 
             # Specify the arch if using MSVC generator, but only if it doesn't
             # contain a backward-compatibility arch spec already in the
@@ -97,7 +107,7 @@ class CMakeBuild(build_ext):
             # Cross-compile support for macOS - respect ARCHFLAGS if set
             archs = re.findall(r"-arch (\S+)", os.environ.get("ARCHFLAGS", ""))
             if archs:
-                cmake_args += ["-DCMAKE_OSX_ARCHITECTURES={}".format(";".join(archs))]
+                cmake_args += [f"-DCMAKE_OSX_ARCHITECTURES={';'.join(archs)}"]
 
         # Set CMAKE_BUILD_PARALLEL_LEVEL to control the parallel build level
         # across all generators.
@@ -132,7 +142,6 @@ setup(
     packages=find_packages(),
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
-    extras_require={},
     python_requires=">=3.7",
     install_requires=[
         'pyserial',
@@ -142,6 +151,12 @@ setup(
     entry_points={
         'console_scripts':[
             'rctrun=autostart.rctrun:main'
+        ]
+    },
+    extras_require={
+        'dev': [
+            'utm',
+            'numpy',
         ]
     }
 )

@@ -1,6 +1,7 @@
 '''UI Board Test
 '''
 import datetime as dt
+import json
 import os
 import pty
 from threading import Event, Thread
@@ -11,6 +12,7 @@ import pytest
 import utm
 from mock_serial import MockSerial
 from RCTComms.comms import rctHeartBeatPacket
+from serial import Serial
 
 import autostart.UIB_instance as dut
 
@@ -81,10 +83,20 @@ class FakeUIBoard:
                 zone_number=zonenum,
                 zone_letter=zone)
             try:
-                self.__stop_event.wait(timeout=1)
-                break
+                if self.__stop_event.wait(timeout=1):
+                    break
             except TimeoutError:
                 continue
+
+@pytest.mark.timeout(4)
+def test_fake_uiboard():
+    uib = FakeUIBoard()
+    uib.start()
+    port = Serial(uib.serial_pty, baudrate=9600)
+    line = port.readline().decode()
+    data = json.loads(line)
+    assert data is not None
+    uib.stop()
 
 
 @pytest.fixture(name='ui_board_devices')

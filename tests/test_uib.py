@@ -67,7 +67,7 @@ class FakeUIBoard:
 
             output_str = ("{\"lat\": %ld, \"lon\": %ld, \"hdg\": %d," # pylint: disable=consider-using-f-string
                 " \"tme\": \"%s\", \"run\": \"%s\", \"fix\": %d, \"sat\": %d, "
-                "\"dat\": \"%s\"}" % (int(self.lat * 1e7), int(self.lon * 1e7),
+                "\"dat\": \"%s\"}\n" % (int(self.lat * 1e7), int(self.lon * 1e7),
                 self.hdg, tme, 'false', int(self.fix), self.sat, dte))
 
             os.write(self.__portnum, output_str.encode('ascii'))

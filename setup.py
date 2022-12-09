@@ -157,6 +157,7 @@ setup(
         'dev': [
             'utm',
             'numpy',
+            'pytest-timeout',
         ]
     }
 )

@@ -432,10 +432,17 @@ class RCTRun:
 
 
     def get_var(self, var: str) -> Any:
+        """Retrieves a parameter from config
+
+        Args:
+            var (str): Parameter key
+
+        Returns:
+            Any: Key value
+        """
         with open(self.__config_path, 'r', encoding='ascii') as handle:
             config = yaml.safe_load(handle)
         return config[var]
-        
 
 def main():
     RCTRun(tcpport=9000)

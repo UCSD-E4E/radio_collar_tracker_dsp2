@@ -9,15 +9,16 @@ import threading
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
+from typing import Any
 
 import serial
 import yaml
-from RCTDSP2 import PingFinder
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
 
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
+from RCTDSP2 import PingFinder
 
 WAIT_COUNT = 60
 
@@ -58,9 +59,13 @@ class RCT_STATES(Enum):
 
 
 class RCTRun:
-    def __init__(self, tcpport: int, test = False):
+    def __init__(self,
+            tcpport: int,
+            test = False, *,
+            config_path: Path = Path('/usr/local/etc/rct_config')):
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
+        self.__config_path = config_path
 
         if os.getuid() == 0:
             log_dest = Path('/var/log/rct.log')
@@ -426,9 +431,9 @@ class RCTRun:
             raise exc
 
 
-    def get_var(self, var: str):
-        var_file = open('/usr/local/etc/rct_config')
-        config = yaml.safe_load(var_file)
+    def get_var(self, var: str) -> Any:
+        with open(self.__config_path, 'r', encoding='ascii') as handle:
+            config = yaml.safe_load(handle)
         return config[var]
         
 

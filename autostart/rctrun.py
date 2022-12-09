@@ -101,11 +101,11 @@ class RCTRun:
         self.ping_finder = None
         self.delete_comms_thread = None
 
-        self.init_comms_thread = threading.Thread(target=self.init_comms)
 
-        self.init_comms_thread.start()
-        logging.debug("RCTRun init: started comms thread")
-
+    def start(self):
+        """Starts all RCTRun Threads
+        """
+        self.init_comms()
         self.init_threads()
 
     def init_threads(self):
@@ -136,7 +136,10 @@ class RCTRun:
         """
         if self.cmdListener is None:
             logging.debug("CommandListener initialized")
-            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            self.cmdListener = CommandListener(
+                UIboard=self.UIB_Singleton,
+                port=self.tcpport,
+                config_path=self.__config_path)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stop_run_cb)
@@ -146,7 +149,6 @@ class RCTRun:
         """Callback for the stop recording command
         """
         self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
-        self.doRun = False
         if self.ping_finder is not None:
             self.ping_finder.stop()
         self.init_threads()
@@ -445,7 +447,8 @@ class RCTRun:
         return config[var]
 
 def main():
-    RCTRun(tcpport=9000)
+    app = RCTRun(tcpport=9000)
+    app.start()
 
 if __name__ == "__main__":
     main()

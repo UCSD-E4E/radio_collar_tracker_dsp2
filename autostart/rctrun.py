@@ -109,15 +109,18 @@ class RCTRun:
         self.init_comms()
         self.init_threads()
 
+    def stop(self):
+        self.cmdListener.stop()
+
     def init_threads(self):
         """System Initialization thread execution
         """
         self.init_sdr_thread = threading.Thread(target=self.initSDR,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='SDR Init')
         self.init_output_thread = threading.Thread(target=self.initOutput,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='Output Init')
         self.init_gps_thread = threading.Thread(target=self.initGPS,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='GPS Init')
         self.init_sdr_thread.start()
         logging.debug("RCTRun init: started SDR thread")
         self.init_output_thread.start()

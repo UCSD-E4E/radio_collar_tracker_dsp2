@@ -10,7 +10,7 @@ from RCTDSP2 import PingFinder
 SDR_ENABLED = True
 GPS_ENABLED = True
 USB_ENABLED = True
-
+TX_ENABLED = False
 # callback_called = 0
 # def phony_callback(now: dt.datetime, amplitude:float, frequency: int):
 #     assert(isinstance(now, dt.datetime))
@@ -40,10 +40,11 @@ def test_run():
     phony_callback = Mock()
 
     ping_finder.register_callback(phony_callback)
-    phony_callback.assert_called()
-    assert isinstance(phony_callback.call_args.args[0], dt.datetime)
-    assert isinstance(phony_callback.call_args.args[1], float)
-    assert isinstance(phony_callback.call_args.args[2], int)
+    if TX_ENABLED:
+        phony_callback.assert_called()
+        assert isinstance(phony_callback.call_args.args[0], dt.datetime)
+        assert isinstance(phony_callback.call_args.args[1], float)
+        assert isinstance(phony_callback.call_args.args[2], int)
 
 
     output_path = Path(ping_finder.output_dir)
@@ -57,7 +58,7 @@ def test_run():
     time.sleep(run_time)
 
     ping_finder.stop()
-    raw_files = output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*")
+    raw_files = list(output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"))
     assert len(raw_files) > 0
 
     file_sizes = [f.stat().st_size for f in raw_files]

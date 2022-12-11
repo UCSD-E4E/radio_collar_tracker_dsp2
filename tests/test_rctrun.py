@@ -1,15 +1,32 @@
 """RCTRun Test
 """
+import socket
+import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Tuple
 
 import pytest
 import yaml
+from RCTComms.comms import gcsComms
+from RCTComms.transport import RCTTCPClient
 from test_uib import FakeUIBoard
 
 from autostart.rctrun import RCTRun
 
+
+@pytest.fixture(name='test_port')
+def get_next_free_port() -> int:
+    """Retrieves the next free port
+
+    Returns:
+        int: Next free port
+    """
+    sock = socket.socket()
+    sock.bind(('', 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
 
 @pytest.fixture(name='test_env')
 def create_test_env() -> Tuple[Path]:
@@ -45,14 +62,37 @@ def create_test_env() -> Tuple[Path]:
     ui_board.stop()
 
 @pytest.mark.timeout(10)
-def test_initialization(test_env: Tuple[Path]):
+def test_initialization(test_env: Tuple[Path], test_port: int):
     """Tests that the initialization occurs without throwing errors
 
     Args:
         test_env (Tuple[Path]): Test Environment
     """
     app = RCTRun(
-        tcpport=9000,
+        tcpport=test_port,
         config_path=test_env[0]
     )
     app.start()
+    app.stop()
+
+@pytest.mark.timeout(15)
+def test_connect(test_env: Tuple[Path], test_port: int):
+    """Tests GCS connection
+
+    Args:
+        test_env (Tuple[Path]): Test Environment
+        test_port (int): Test Port
+    """
+    port = test_port
+    app = RCTRun(
+        tcpport=port,
+        config_path=test_env[0]
+    )
+    app.start()
+
+    transport = RCTTCPClient(port, '127.0.0.1')
+    gcs_mock = gcsComms(transport)
+    gcs_mock.start()
+    time.sleep(5)
+    gcs_mock.stop()
+    app.stop()

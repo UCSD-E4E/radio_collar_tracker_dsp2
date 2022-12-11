@@ -201,8 +201,8 @@ class CommandListener(object):
         self._run = True
         
         self.state = COMMS_STATES.disconnected
-        self.sender = threading.Thread(target=self._sender)
-        self.reconnect = threading.Thread(target=self._reconnectComms)
+        self.sender = threading.Thread(target=self._sender, name='CommandListener_sender', daemon=True)
+        self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_reconnect')
 
         self.startFlag = False
         self.UIBoard = UIboard
@@ -254,7 +254,7 @@ class CommandListener(object):
 
         self.port.port_open_event.wait()
 
-        while (self.state == COMMS_STATES.connected):
+        while (self.port.isOpen()):
             try:
                 now = datetime.datetime.now()
                 if (now - prevTime).total_seconds() > 1:
@@ -289,8 +289,8 @@ class CommandListener(object):
 
     def _reconnectComms(self):
         self.sender.join()
-        self.sender = threading.Thread(target=self._sender)
-        self.reconnect = threading.Thread(target=self._reconnectComms)
+        self.sender = threading.Thread(target=self._sender, name='CommandListener_sender', daemon=True)
+        self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_sender')
 
         self.port.start()
         while not self.sock.isOpen():

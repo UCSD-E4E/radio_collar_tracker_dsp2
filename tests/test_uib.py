@@ -51,7 +51,7 @@ class FakeUIBoard:
         """Starts the fake UI Board
         """
         self.__stop_event.clear()
-        self.__sendthread = Thread(target=self.__send)
+        self.__sendthread = Thread(target=self.__send, name='MockUIBoardSend')
         self.__sendthread.start()
 
     def stop(self):

@@ -40,7 +40,7 @@ class UIBoard:
         self.testMode = testMode
 
         self.run = False
-        self.listener = threading.Thread(target=self.uibListener)
+        self.listener = threading.Thread(target=self.uibListener, name='UIB Listener')
         self.recentLoc = None
 
         #self.sender = threading.Thread(target=self.doHeartbeat)
@@ -266,7 +266,7 @@ class UIBoard:
         self.run = False
         #self.sender.join()
         self.listener.join()
-        self.listener = threading.Thread(target=self.uibListener)
+        self.listener = threading.Thread(target=self.uibListener, name='UIB Listener')
         self.switch = 0
 
     def registerSensorCallback(self, event, callback):

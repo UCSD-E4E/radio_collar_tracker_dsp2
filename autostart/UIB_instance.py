@@ -164,9 +164,17 @@ class UIBoard:
         else:
             with serial.Serial(port=self.port, baudrate=self.baud, timeout=2) as ser:
                 while self.run:
-                    ret = ser.readline().decode("utf-8")
+                    try:
+                        ret = ser.readline().decode("utf-8")
+                    except serial.SerialException as exc:
+                        self.__log.exception(exc)
+                        continue
                     if ret is not None and ret != "":
-                        reading = json.loads(ret)
+                        try:
+                            reading = json.loads(ret)
+                        except json.JSONDecodeError:
+                            self.__log.exception("Malformed UIB Location message")
+                            continue
                         try:
                             lat = reading["lat"] / 1e7
                             lon = reading["lon"] / 1e7

@@ -5,14 +5,15 @@ import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Tuple
+from unittest.mock import Mock
 
 import pytest
 import yaml
-from RCTComms.comms import gcsComms
+from RCTComms.comms import EVENTS, gcsComms, rctSTARTCommand, rctSTOPCommand
 from RCTComms.transport import RCTTCPClient
 from test_uib import FakeUIBoard
 
-from autostart.rctrun import RCTRun
+from autostart.rctrun import RCT_STATES, RCTRun
 
 
 @pytest.fixture(name='test_port')
@@ -96,3 +97,48 @@ def test_connect(test_env: Tuple[Path], test_port: int):
     time.sleep(5)
     gcs_mock.stop()
     app.stop()
+
+@pytest.fixture(name='running_system')
+def create_running_system(test_env: Tuple[Path], test_port: int) -> Tuple[RCTRun, gcsComms]:
+    """Sets up a running and connected system
+
+    Args:
+        test_env (Tuple[Path]): Test Environment
+        test_port (int): Test Port
+
+    Returns:
+        Tuple[RCTRun, gcsComms]: MAV and GCS pair
+
+    Yields:
+        Iterator[Tuple[RCTRun, gcsComms]]: MAV and GCS pair
+    """
+    app = RCTRun(
+        tcpport=test_port,
+        config_path=test_env[0]
+    )
+    app.start()
+
+    transport = RCTTCPClient(test_port, '127.0.0.1')
+    gcs = gcsComms(transport)
+    gcs.start()
+    yield app, gcs
+    gcs.stop()
+    app.stop()
+
+@pytest.mark.timeout(20)
+def test_start_runner(running_system: Tuple[RCTRun, gcsComms]):
+    """Tests starting and stopping run
+
+    Args:
+        running_system (Tuple[RCTRun, gcsComms]): MAV and GCS
+    """
+    mav, gcs = running_system
+    gcs.sendPacket(rctSTARTCommand())
+    time.sleep(1)
+    assert mav.UIB_Singleton.system_state in [RCT_STATES.start.value, RCT_STATES.wait_end.value]
+    stop_command_mock = Mock()
+    mav.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, stop_command_mock)
+    gcs.sendPacket(rctSTOPCommand())
+    time.sleep(8)
+    stop_command_mock.assert_called_once()
+    assert mav.UIB_Singleton.system_state not in [RCT_STATES.start.value, RCT_STATES.wait_end.value]

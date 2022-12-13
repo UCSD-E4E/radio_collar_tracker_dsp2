@@ -234,15 +234,16 @@ class CommandListener(object):
         self.UIBoard.switch = 0
 
 
-    def setRun(self, runDir, runNum):
+    def setRun(self, runDir: Path, runNum):
         self.newRun = True
         if self.ping_file is not None:
             self.ping_file.close()
             print('Closing file')
-        path = os.path.join(runDir, 'LOCALIZE_%06d' % (runNum))
-        if os.path.isfile(path):
+        path = runDir.joinpath(f'LOCALIZE_{runNum:06d}')
+
+        if path.is_file():
             self.ping_file = open(path)
-            print("Set and open file to %s" % (os.path.join(runDir, 'LOCALIZE_%06d' % (runNum))))
+            print(f"Set and open file to {path.as_posix()}")
         else:
             raise Exception("File non existent!")
 

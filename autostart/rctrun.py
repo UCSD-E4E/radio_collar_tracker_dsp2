@@ -6,7 +6,6 @@ import os
 import subprocess
 import threading
 import time
-from enum import Enum, IntEnum
 from pathlib import Path
 from typing import Any, Optional
 
@@ -15,6 +14,8 @@ import yaml
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
 
+from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
+                              SDR_INIT_STATES)
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
 from RCTDSP2 import PingFinder
@@ -23,47 +24,16 @@ WAIT_COUNT = 60
 
 testDir = Path("../testOutput")
 
-class GPS_STATES(IntEnum):
-	get_tty = 0
-	get_msg = 1
-	wait_recycle = 2
-	rdy = 3
-	fail = 4
-
-class SDR_INIT_STATES(IntEnum):
-	find_devices = 0
-	wait_recycle = 1
-	usrp_probe = 2
-	rdy = 3
-	fail = 4
-
-class OUTPUT_DIR_STATES(IntEnum):
-	get_output_dir = 0
-	check_output_dir = 1
-	check_space = 2
-	wait_recycle = 3
-	rdy = 4
-	fail = 5
-
-class RCT_STATES(Enum):
-	init		=	0
-	wait_init	=	1
-	wait_start	=	2
-	start		=	3
-	wait_end	=	4
-	finish		=	5
-	fail		=	6
-
-
-
 class RCTRun:
     def __init__(self,
             tcpport: int,
             test = False, *,
-            config_path: Path = Path('/usr/local/etc/rct_config')):
+            config_path: Path = Path('/usr/local/etc/rct_config'),
+            allow_nonmount: bool = False):
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
         self.__config_path = config_path
+        self.__allow_nonmount = allow_nonmount
 
         self.__output_path: Optional[Path] = None
 

@@ -8,7 +8,7 @@ from typing import Any
 import serial
 from RCTComms.comms import (EVENTS, rctHeartBeatPacket, rctPingPacket,
                             rctVehiclePacket)
-
+from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES, GPS_STATES
 
 class UIBoard:
     def __init__(self, port="none", baud=115200, testMode=False):
@@ -61,7 +61,7 @@ class UIBoard:
         if not isinstance(state, int):
             raise RuntimeError("Illegal type")
         self._system_state = state
-        self.__log.warning("System state set to %d", state)
+        self.__log.warning("System state set to %s", RCT_STATES(state).name)
 
     @property
     def sdr_state(self) -> int:
@@ -77,7 +77,7 @@ class UIBoard:
         if not isinstance(state, int):
             raise RuntimeError("Illegal type")
         self._sdr_state = state
-        self.__log.warning("SDR state set to %d", state)
+        self.__log.warning("SDR state set to %s", SDR_INIT_STATES(state).name)
 
     @property
     def sensor_state(self) -> int:
@@ -93,7 +93,7 @@ class UIBoard:
         if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._sensor_state = state
-        self.__log.warning("Sensor state set to %d", state)
+        self.__log.warning("Sensor state set to %s", GPS_STATES(state).name)
 
     @property
     def storage_state(self) -> int:
@@ -109,7 +109,7 @@ class UIBoard:
         if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._storage_state = state
-        self.__log.warning("Storage state set to %d", state)
+        self.__log.warning("Storage state set to %s", OUTPUT_DIR_STATES(state).name)
 
     @property
     def switch(self) -> int:

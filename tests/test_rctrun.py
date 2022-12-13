@@ -71,7 +71,8 @@ def test_initialization(test_env: Tuple[Path], test_port: int):
     """
     app = RCTRun(
         tcpport=test_port,
-        config_path=test_env[0]
+        config_path=test_env[0],
+        allow_nonmount=True
     )
     app.start()
     app.stop()
@@ -87,7 +88,8 @@ def test_connect(test_env: Tuple[Path], test_port: int):
     port = test_port
     app = RCTRun(
         tcpport=port,
-        config_path=test_env[0]
+        config_path=test_env[0],
+        allow_nonmount=True
     )
     app.start()
 
@@ -114,7 +116,8 @@ def create_running_system(test_env: Tuple[Path], test_port: int) -> Tuple[RCTRun
     """
     app = RCTRun(
         tcpport=test_port,
-        config_path=test_env[0]
+        config_path=test_env[0],
+        allow_nonmount=True
     )
     app.start()
 

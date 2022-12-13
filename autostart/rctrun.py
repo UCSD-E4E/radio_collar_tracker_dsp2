@@ -380,7 +380,14 @@ class RCTRun:
                 elif not outputDirFound:
                     if test:
                         self.__output_path = testDir
-                    if self.__output_path.is_dir() and self.__output_path.is_block_device():
+                    valid_dir = True
+                    if not self.__output_path.is_dir():
+                        valid_dir = False
+                        log.error("Output path is not a directory")
+                    if not self.__allow_nonmount and not self.__output_path.is_block_device():
+                        valid_dir = False
+                        log.error("Output path is not a mount, nonmount not permitted")
+                    if valid_dir:
                         outputDirFound = True
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_space
                     else:

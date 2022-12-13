@@ -1,16 +1,14 @@
 import datetime
-import glob
 import json
 import logging
 import logging.handlers
 import os
-import re
 import subprocess
 import threading
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import serial
 import yaml
@@ -23,8 +21,7 @@ from RCTDSP2 import PingFinder
 
 WAIT_COUNT = 60
 
-output_dir = None
-testDir = "../testOutput"
+testDir = Path("../testOutput")
 
 class GPS_STATES(IntEnum):
 	get_tty = 0
@@ -67,6 +64,8 @@ class RCTRun:
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
         self.__config_path = config_path
+
+        self.__output_path: Optional[Path] = None
 
         if os.getuid() == 0:
             log_dest = Path('/var/log/rct.log')
@@ -169,25 +168,24 @@ class RCTRun:
                 self.UIB_Singleton.system_state = RCT_STATES.start.value
 
                 if not self.test:
-                    meta_files = glob.glob(os.path.join(output_dir, 'RUN_*'))
-                    if len(meta_files) > 0:
-                        run_num = int(re.sub("[^0-9]", "", sorted(meta_files)[-1].replace(output_dir, ''))) + 1
+                    run_dirs = list(self.__output_path.glob('RUN_*'))
+                    if len(run_dirs) > 0:
+                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:])
                         logging.debug("Run Num:")
                         logging.debug(run_num)
                     else:
                         run_num = 1
-                run_dir = os.path.join(output_dir, 'RUN_%06d' % (run_num))
+                run_dir = self.__output_path.joinpath(f'RUN_{run_num:06d}')
                 if not self.test:
-                    os.makedirs(run_dir)
+                    run_dir.mkdir(parents=True, exist_ok=True)
                 else:
                     try:
-                        os.makedirs(run_dir)
+                        run_dir.mkdir(parents=True, exist_ok=True)
                     except:
                         pass
 
-                localize_file = os.path.join(run_dir, 'LOCALIZE_%06d' % (run_num))
-                with open(localize_file, 'w') as file:
-                    file.write("")
+                localize_file = run_dir.joinpath(f'LOCALIZE_{run_num:06d}')
+                localize_file.touch()
                     
                 self.cmdListener.setRun(run_dir, run_num)
                 time.sleep(1)
@@ -391,7 +389,6 @@ class RCTRun:
             raise exc
 
     def initOutput(self, test):
-        global output_dir
         log = logging.getLogger('InitOutput')
         try:
             outputDirInitialized = False
@@ -405,21 +402,22 @@ class RCTRun:
                 if not dirNameFound:
                     output_dir = self.get_var('SYS_outputDir')
                     if output_dir is not None:
+                        self.__output_path = Path(output_dir)
                         dirNameFound = True
                         print("OUTPUTDIR_INIT:\trctConfig Directory:")
                         print("OUTPUTDIR_INIT:\t" + output_dir)
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_output_dir
                 elif not outputDirFound:
                     if test:
-                        output_dir = testDir
-                    if os.path.isdir(output_dir):
+                        self.__output_path = testDir
+                    if self.__output_path.is_dir() and self.__output_path.is_block_device():
                         outputDirFound = True
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_space
                     else:
                         time.sleep(10)
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.wait_recycle
                 elif not enoughSpace:
-                    df = subprocess.Popen(['df', '-B1', output_dir], stdout=subprocess.PIPE)
+                    df = subprocess.Popen(['df', '-B1', self.__output_path.as_posix()], stdout=subprocess.PIPE)
                     output = df.communicate()[0].decode('utf-8')
                     device, size, used, available, percent, mountpoint = output.split('\n')[1].split()
                     if int(available) > 20 * 60 * 1500000 * 4:

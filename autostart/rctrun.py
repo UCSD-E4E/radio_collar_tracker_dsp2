@@ -384,7 +384,7 @@ class RCTRun:
                     if not self.__output_path.is_dir():
                         valid_dir = False
                         log.error("Output path is not a directory")
-                    if not self.__allow_nonmount and not self.__output_path.is_block_device():
+                    if not self.__allow_nonmount and not self.__output_path.is_mount():
                         valid_dir = False
                         log.error("Output path is not a mount, nonmount not permitted")
                     if valid_dir:

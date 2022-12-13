@@ -244,7 +244,7 @@ class RCTRun:
                     if not test:
                         try:
                             line = tty_stream.readline().decode("utf-8")
-                        except serial.serialutil.SerialException as exc:
+                        except serial.SerialException as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: no serial!")
                             continue
@@ -281,7 +281,7 @@ class RCTRun:
                     if not test:
                         try:
                             line = tty_stream.readline().decode("utf-8")
-                        except serial.serialutil.SerialException as exc:
+                        except serial.SerialException as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
                             print("GPS fail: no serial!")
                             continue

@@ -25,10 +25,6 @@ namespace RCT{
     {
     protected:
 		/**
-		 * Internal state variable
-		 */
-        volatile bool run_flag = true;
-		/**
 		 * SDR data queue.  This connects the RTT::SDR and RTT::DSP_V3 classes.
 		 */
         std::queue<std::complex<double>*> sdr_queue;
@@ -101,6 +97,10 @@ namespace RCT{
         double ping_min_len_mult;
         std::vector<size_t> target_frequencies;
 		std::uint32_t sdr_type = USE_SDR_TYPE;
+		/**
+		 * Internal state variable
+		 */
+        volatile bool run_flag = false;
 
         PingFinder();
 

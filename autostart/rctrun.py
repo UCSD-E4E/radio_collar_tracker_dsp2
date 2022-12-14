@@ -428,14 +428,20 @@ class RCTRun:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('config', 'c', type=Path)
+    parser.add_argument('--config', '-c', type=Path)
+    parser.add_argument('--no_mount', action='store_true')
     args = parser.parse_args()
-    if parser.config:
-        config = args.config
-        app = RCTRun(tcpport=9000, config_path=config)
-    else:
-        app = RCTRun(tcpport=9000, config_path=config)
+
+    kwargs = {
+        'tcpport': 9000
+    }
+    if args.config:
+        kwargs['config_path'] = args.config
+    kwargs['allow_nonmount'] = args.no_mount
+    app = RCTRun(**kwargs)
     app.start()
+    while True:
+        pass
 
 if __name__ == "__main__":
     main()

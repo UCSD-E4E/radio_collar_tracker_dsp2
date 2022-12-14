@@ -11,7 +11,7 @@
             "module": "autostart.rctrun",
             "justMyCode": true,
             "sudo": true,
-            "args": ["--config", "${workspaceFolder}/rct_config"]
+            "args": ["--config", "${workspaceFolder}/rct_config", "--no_mount"]
         },
         {
             "name": "Test Run",

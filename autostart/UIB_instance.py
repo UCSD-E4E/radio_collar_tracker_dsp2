@@ -143,6 +143,8 @@ class UIBoard:
     def send_heartbeat(self):
         """Sends a heartbeat packet to the UI Board
         """
+        if self.testMode:
+            return
         with serial.Serial(port=self.port, baudrate=self.baud) as port:
             output = {
                 'STR': self.storage_state,

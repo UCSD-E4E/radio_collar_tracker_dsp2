@@ -72,6 +72,8 @@ class RCTRun:
         self.ping_finder = None
         self.delete_comms_thread = None
 
+        self.heatbeat_thread_stop = threading.Event()
+        self.heartbeat_thread: Optional[threading.Thread] = None
 
     def start(self):
         """Starts all RCTRun Threads
@@ -81,6 +83,8 @@ class RCTRun:
 
     def stop(self):
         self.cmdListener.stop()
+        self.heatbeat_thread_stop.set()
+        self.heartbeat_thread.join()
 
     def init_threads(self):
         """System Initialization thread execution
@@ -104,6 +108,16 @@ class RCTRun:
         self.init_output_thread.join()
         self.init_gps_thread.join()
         self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
+
+        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
+        self.heartbeat_thread.start()
+
+    def uib_heartbeat(self):
+        while not self.heatbeat_thread_stop.is_set():
+            if self.heatbeat_thread_stop.wait(timeout=1):
+                break
+            else:
+                self.UIB_Singleton.send_heartbeat()
 
     def init_comms(self):
         """Sets up the connection configuration

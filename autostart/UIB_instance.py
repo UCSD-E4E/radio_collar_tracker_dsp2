@@ -140,6 +140,17 @@ class UIBoard:
             }
             ser.write(json.dumps(output).encode())
 
+    def send_heartbeat(self):
+        """Sends a heartbeat packet to the UI Board
+        """
+        with serial.Serial(port=self.port, baudrate=self.baud) as port:
+            output = {
+                'STR': self.storage_state,
+                'SYS': self.system_state,
+                'SDF': self.sdr_state
+            }
+            port.write(json.dumps(output).encode())
+
 
     def uibListener(self):
         '''

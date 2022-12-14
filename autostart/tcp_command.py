@@ -265,7 +265,6 @@ class CommandListener(object):
 
                     msg = heartbeatPacket
                     self.port.sendToGCS(msg)
-                    self.UIBoard.handleHeartbeatPacket(msg)
                     prevTime = now
             except BrokenPipeError:
                 print("broke pipe")

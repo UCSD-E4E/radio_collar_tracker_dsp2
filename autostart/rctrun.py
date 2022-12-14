@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import json
 import logging
@@ -426,7 +427,14 @@ class RCTRun:
         return config[var]
 
 def main():
-    app = RCTRun(tcpport=9000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config', 'c', type=Path)
+    args = parser.parse_args()
+    if parser.config:
+        config = args.config
+        app = RCTRun(tcpport=9000, config_path=config)
+    else:
+        app = RCTRun(tcpport=9000, config_path=config)
     app.start()
 
 if __name__ == "__main__":

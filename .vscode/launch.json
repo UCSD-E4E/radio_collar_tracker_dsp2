@@ -10,7 +10,8 @@
             "request": "launch",
             "module": "autostart.rctrun",
             "justMyCode": true,
-            "sudo": true
+            "sudo": true,
+            "args": ["--config", "${workspaceFolder}/rct_config"]
         },
         {
             "name": "Test Run",

@@ -296,14 +296,9 @@ class RCTRun:
                     if not test:
                         try:
                             tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
-                        except serial.SerialException as exc:
+                        except serial.SerialException:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: bad serial!")
-                            print(exc)
-                            continue
-                        if tty_stream is None:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
+                            log.exception("Failed to create serial device")
                             continue
                         else:
                             self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
@@ -316,7 +311,7 @@ class RCTRun:
                             line = tty_stream.readline().decode("utf-8")
                         except serial.SerialException as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
+                            log.exception("Failed to read from serial!")
                             continue
                         if line is not None and line != "":
                             msg = None
@@ -325,7 +320,7 @@ class RCTRun:
                                 self.UIB_Singleton.sensor_state = GPS_STATES.rdy
                             except json.JSONDecodeError as exc:
                                 self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                print("GPS fail: bad message!")
+                                log.exception("GPS fail: bad message!: %s", msg)
                                 self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                                 continue
                         else:

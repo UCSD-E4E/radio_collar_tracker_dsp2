@@ -273,8 +273,6 @@ class CommandListener(object):
                 self.startFlag = False
                 self.UIBoard.switch = 0
                 self.port.stop()
-                if self.UIBoard.run:
-                    self.UIBoard.stop()
                 while self.sock.isOpen():
                     time.sleep(1)
                     print("still open")
@@ -325,7 +323,6 @@ class CommandListener(object):
     def _gotStopCmd(self, packet: rctSTOPCommand, addr):
         self.startFlag = False
         self.UIBoard.switch = 0
-        self.UIBoard.stop()
         self._sendAck(0x09, True)
         try:
             self.ping_file.close()
@@ -499,7 +496,7 @@ class CommandListener(object):
             EVENTS.COMMAND_STOP, self._gotStopCmd)
         self.port.registerCallback(
             EVENTS.COMMAND_UPGRADE, self._upgradeCmd)
-        self.UIBoard.registerSensorCallback(
+        self.UIBoard.register_callback(
             EVENTS.DATA_PING, self.port.sendPing)
-        self.UIBoard.registerSensorCallback(
+        self.UIBoard.register_callback(
             EVENTS.DATA_VEHICLE, self.port.sendVehicle)

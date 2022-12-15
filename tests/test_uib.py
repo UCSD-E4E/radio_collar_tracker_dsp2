@@ -71,7 +71,7 @@ class FakeUIBoard:
             while True:
                 # do stuff
                 now = dt.datetime.now()
-                tme = now.strftime('%H%M%S')
+                tme = now.strftime('%H%M%S.00')
                 dte = now.strftime('%d%m%y')
 
                 output_str = ("{\"seq\": %d, \"lat\": %ld, \"lon\": %ld, \"hdg\": %d," # pylint: disable=consider-using-f-string

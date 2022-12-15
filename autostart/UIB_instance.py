@@ -42,10 +42,15 @@ class UIBoard:
         self.__device = port
         self.__baud = baud
 
-        self.run = False
+        self.run = True
         self.listener = threading.Thread(target=self.uib_listener, name='UIB Listener')
+        self.listener.start()
         self.recentLoc = None
+        self.__last_timestamp: Optional[datetime.datetime] = None
         self.gps_ready = threading.Event()
+
+        self.__monitor = threading.Thread(target=self.__monitor_fn, name='UIB Monitor')
+        self.__monitor.start()
 
     @property
     def system_state(self) -> int:
@@ -178,6 +183,7 @@ class UIBoard:
                 continue
 
         self.sensor_state = GPS_STATES.rdy
+        self.__log.info('GPS Ready')
         self.gps_ready.set()
 
     def uib_listener(self):
@@ -199,6 +205,7 @@ class UIBoard:
                     print(packet.lat, packet.lon)
                     self.handle_sensor_packet(packet)
                     self.recentLoc = [lat, lon, 0]
+                    self.__last_timestamp = date
                 except Exception as e:
                     print(str(e))
         else:
@@ -237,6 +244,7 @@ class UIBoard:
                         self.recentLoc = [lat, lon, 0]
 
                         self.handle_sensor_packet(packet)
+                        self.__last_timestamp = date
 
                     except Exception: # pylint: disable=broad-except
                         self.__log.exception('Failed to process sensor packet')
@@ -264,6 +272,7 @@ class UIBoard:
     def __del__(self):
         self.run = False
         self.listener.join()
+        self.__monitor.join()
 
     def register_callback(self, event: EVENTS, callback: Callable):
         self.__sensor_callbacks[event].append(callback)
@@ -271,3 +280,17 @@ class UIBoard:
 
     def ready(self):
         return (self.sdr_state == 3) and (self.sensor_state == 3) and (self.storage_state == 4)
+
+    def __monitor_fn(self):
+        while self.run:
+            if self.gps_ready.wait(1):
+                break
+        while self.run:
+            time.sleep(1)
+            now = datetime.datetime.now()
+            if not self.__last_timestamp:
+                self.__log.warning('No timestamp!')
+                continue
+            if (now - self.__last_timestamp).total_seconds() > 3:
+                self.__log.warning("Stale location!")
+            

@@ -221,7 +221,6 @@ class CommandListener(object):
         self.sender.join()
         self.port.stop()
         del self.port
-        self.UIBoard.run = False
         if self.ping_file is not None:
             self.ping_file.close()
             print('Closing file')
@@ -303,8 +302,6 @@ class CommandListener(object):
         if self.UIBoard.ready():
             self.startFlag = True
             self.UIBoard.switch = 1
-            self.UIBoard.run = True
-            self.UIBoard.listener.start()
             self._sendAck(0x07, True)
             print("Set start flag")
             self._sendAck(packet._pid, True)

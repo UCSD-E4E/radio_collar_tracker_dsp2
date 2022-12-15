@@ -214,7 +214,7 @@ class RCTRun:
                 if not self.test:
                     run_dirs = list(self.__output_path.glob('RUN_*'))
                     if len(run_dirs) > 0:
-                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:])
+                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:]) + 1
                         logging.debug("Run Num:")
                         logging.debug(run_num)
                     else:
@@ -251,7 +251,7 @@ class RCTRun:
                     logging.debug("Enterring start pingFinder5")
                     self.ping_finder.enable_test_data = False
                     logging.debug("Enterring start pingFinder6")
-                    self.ping_finder.output_dir = self.cmdListener.options.getOption("SYS_outputDir")
+                    self.ping_finder.output_dir = run_dir.as_posix()
                     logging.debug("Enterring start pingFinder7")
                     self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
                     logging.debug("Enterring start pingFinder8")

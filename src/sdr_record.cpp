@@ -95,7 +95,7 @@ void RCT::PingFinder::start(void)
     sdr->startStreaming(sdr_queue, sdr_queue_mutex, sdr_var);
     sink->start(ping_queue, ping_queue_mutex, ping_var);
 
-    // run_flag = true;
+    run_flag = true;
     // test_thread = new std::thread(&RCT::PingFinder::_testThread, this);
 }
 
@@ -143,7 +143,7 @@ void RCT::PingFinder::stop(void)
     }
     sink->stop();
 
-    // run_flag = false;
+    run_flag = false;
     // test_thread->join();
     // delete(test_thread);
     // test_thread = nullptr;
@@ -180,6 +180,7 @@ PYBIND11_MODULE(RCTDSP2, m) {
         "and releases the underlying SDR and signal processing threads.  It "
         "will also clear the current callback registrations.");
     pf.def("register_callback", &RCT::PingFinder::register_callback);
+    pf.def_readonly("run_flag", &RCT::PingFinder::run_flag, "Running flag");
     pf.def_readwrite("gain", &RCT::PingFinder::gain, "Sets the internal gain "
         "of the SDR");
     pf.def_readwrite("sampling_rate", &RCT::PingFinder::sampling_rate, "Sets "

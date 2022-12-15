@@ -53,11 +53,15 @@ def test_run():
 
     if SDR_ENABLED is False:
         return
+    assert ping_finder.run_flag == False
     ping_finder.start()
+    assert ping_finder.run_flag == True
 
     time.sleep(run_time)
 
+    assert ping_finder.run_flag == True
     ping_finder.stop()
+    assert ping_finder.run_flag == False
     raw_files = list(output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"))
     assert len(raw_files) > 0
 

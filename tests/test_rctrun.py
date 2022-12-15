@@ -139,9 +139,8 @@ def test_start_runner(running_system: Tuple[RCTRun, gcsComms]):
     gcs.sendPacket(rctSTARTCommand())
     time.sleep(1)
     assert mav.UIB_Singleton.system_state in [RCT_STATES.start.value, RCT_STATES.wait_end.value]
-    stop_command_mock = Mock()
-    mav.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, stop_command_mock)
     gcs.sendPacket(rctSTOPCommand())
-    time.sleep(8)
-    stop_command_mock.assert_called_once()
-    assert mav.UIB_Singleton.system_state not in [RCT_STATES.start.value, RCT_STATES.wait_end.value]
+    with mav.events[mav.Event.STOP_RUN]:
+        assert mav.events[mav.Event.STOP_RUN].wait(timeout=8)
+    assert mav.flags[mav.Flags.INIT_COMPLETE].wait(timeout=8)
+    assert mav.UIB_Singleton.system_state in [RCT_STATES.start.value, RCT_STATES.wait_end.value]

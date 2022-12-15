@@ -158,6 +158,7 @@ setup(
             'utm',
             'numpy',
             'pytest-timeout',
+            'mock-serial',
         ]
     }
 )

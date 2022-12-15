@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import json
 import logging
@@ -6,8 +7,10 @@ import os
 import subprocess
 import threading
 import time
+from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Optional
+from threading import Event, Condition
+from typing import Any, Callable, Dict, List, Optional
 
 import serial
 import yaml
@@ -25,6 +28,21 @@ WAIT_COUNT = 60
 testDir = Path("../testOutput")
 
 class RCTRun:
+    class Event(Enum):
+        """Callback events
+
+        """
+        START_RUN = auto()
+        STOP_RUN = auto()
+
+    class Flags(Enum):
+        """Events
+        """
+        SDR_READY = auto()
+        GPS_READY = auto()
+        STORAGE_READY = auto()
+        INIT_COMPLETE = auto()
+
     def __init__(self,
             tcpport: int,
             test = False, *,
@@ -34,6 +52,12 @@ class RCTRun:
         root_logger.setLevel(logging.DEBUG)
         self.__config_path = config_path
         self.__allow_nonmount = allow_nonmount
+
+        self.__callbacks: Dict[RCTRun.Event, List[Callable[[RCTRun.Event], None]]] = \
+            {evt:[] for evt in RCTRun.Event}
+        self.events: Dict[RCTRun.Event, Condition] = {evt: Condition() for evt in RCTRun.Event}
+
+        self.flags = {evt: Event() for evt in RCTRun.Flags}
 
         self.__output_path: Optional[Path] = None
 
@@ -71,19 +95,55 @@ class RCTRun:
         self.ping_finder = None
         self.delete_comms_thread = None
 
+        self.heatbeat_thread_stop = threading.Event()
+        self.heartbeat_thread: Optional[threading.Thread] = None
+
+    def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
+        """Registers a new callback for the specified event
+
+        Args:
+            event (Event): Event to register for
+            cb_ (Callable[[Event], None]): Callback function
+        """
+        self.__callbacks[event].append(cb_)
+
+    def execute_cb(self, event: Event) -> None:
+        """Executes an event's callbacks
+
+        Args:
+            event (Event): Event to execute
+        """
+        with self.events[event]:
+            self.events[event].notify_all()
+        for cb_ in self.__callbacks[event]:
+            cb_(event)
+
+    def remove_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
+        """Removes the specified callback from the specified event
+
+        Args:
+            event (Event): Event to remove from
+            cb_ (Callable[[Event], None]): Callback to remove
+        """
+        self.__callbacks[event].remove(cb_)
 
     def start(self):
         """Starts all RCTRun Threads
         """
         self.init_comms()
         self.init_threads()
+        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
+        self.heartbeat_thread.start()
 
     def stop(self):
         self.cmdListener.stop()
+        self.heatbeat_thread_stop.set()
+        self.heartbeat_thread.join()
 
     def init_threads(self):
         """System Initialization thread execution
         """
+        self.flags[self.Flags.INIT_COMPLETE].clear()
         self.init_sdr_thread = threading.Thread(target=self.initSDR,
             kwargs={'test':self.test}, name='SDR Init')
         self.init_output_thread = threading.Thread(target=self.initOutput,
@@ -104,6 +164,16 @@ class RCTRun:
         self.init_gps_thread.join()
         self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
 
+        self.flags[self.Flags.INIT_COMPLETE].set()
+
+
+    def uib_heartbeat(self):
+        while not self.heatbeat_thread_stop.is_set():
+            if self.heatbeat_thread_stop.wait(timeout=1):
+                break
+            else:
+                self.UIB_Singleton.send_heartbeat()
+
     def init_comms(self):
         """Sets up the connection configuration
         """
@@ -121,9 +191,12 @@ class RCTRun:
     def stop_run_cb(self, packet, addr): # pylint: disable=unused-argument
         """Callback for the stop recording command
         """
+        log = logging.getLogger('Stop Run Callback')
+        log.info("Stop Run Callback")
         self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
         if self.ping_finder is not None:
             self.ping_finder.stop()
+        self.execute_cb(self.Event.STOP_RUN)
         self.init_threads()
 
 
@@ -133,6 +206,7 @@ class RCTRun:
 
     def run(self):
         log = logging.getLogger('run')
+        self.execute_cb(self.Event.START_RUN)
         try:
             if self.cmdListener.startFlag:
                 self.UIB_Singleton.system_state = RCT_STATES.start.value
@@ -197,13 +271,9 @@ class RCTRun:
             log.exception(exc)
             raise exc
 
-
-
-
-        
-
     def initGPS(self, test = False):
         log = logging.getLogger('InitGPS')
+        self.flags[self.Flags.GPS_READY].clear()
         try:
             self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
 
@@ -226,14 +296,9 @@ class RCTRun:
                     if not test:
                         try:
                             tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
-                        except serial.SerialException as exc:
+                        except serial.SerialException:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: bad serial!")
-                            print(exc)
-                            continue
-                        if tty_stream is None:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
+                            log.exception("Failed to create serial device")
                             continue
                         else:
                             self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
@@ -246,7 +311,7 @@ class RCTRun:
                             line = tty_stream.readline().decode("utf-8")
                         except serial.SerialException as exc:
                             self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
+                            log.exception("Failed to read from serial!")
                             continue
                         if line is not None and line != "":
                             msg = None
@@ -255,7 +320,7 @@ class RCTRun:
                                 self.UIB_Singleton.sensor_state = GPS_STATES.rdy
                             except json.JSONDecodeError as exc:
                                 self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                print("GPS fail: bad message!")
+                                log.exception("GPS fail: bad message!: %s", msg)
                                 self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
                                 continue
                         else:
@@ -308,9 +373,11 @@ class RCTRun:
         except Exception as exc:
             log.exception(exc)
             raise exc
+        self.flags[self.Flags.GPS_READY].set()
 
     def initSDR(self, test = False):
         log = logging.getLogger("SDR Init")
+        self.flags[self.Flags.SDR_READY].clear()
         initialized = False
         devicesFound = False
         usrpDeviceInitialized = False
@@ -357,9 +424,11 @@ class RCTRun:
         except Exception as exc:
             log.exception(exc)
             raise exc
+        self.flags[self.Flags.SDR_READY].set()
 
     def initOutput(self, test):
         log = logging.getLogger('InitOutput')
+        self.flags[self.Flags.STORAGE_READY].clear()
         try:
             outputDirInitialized = False
             dirNameFound = False
@@ -410,6 +479,7 @@ class RCTRun:
         except Exception as exc:
             log.exception(exc)
             raise exc
+        self.flags[self.Flags.STORAGE_READY].set()
 
 
     def get_var(self, var: str) -> Any:
@@ -426,8 +496,21 @@ class RCTRun:
         return config[var]
 
 def main():
-    app = RCTRun(tcpport=9000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', '-c', type=Path)
+    parser.add_argument('--no_mount', action='store_true')
+    args = parser.parse_args()
+
+    kwargs = {
+        'tcpport': 9000
+    }
+    if args.config:
+        kwargs['config_path'] = args.config
+    kwargs['allow_nonmount'] = args.no_mount
+    app = RCTRun(**kwargs)
     app.start()
+    while True:
+        pass
 
 if __name__ == "__main__":
     main()

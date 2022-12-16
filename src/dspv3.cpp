@@ -40,7 +40,8 @@ namespace RCT{
 	FRAMES_PER_FILE(SAMPLES_PER_FILE / input_block_size),
 	fixed_point_scalar(pow(2, bit_depth - 1)),
 	input_hwm(0),
-	power_hwm(0)
+	power_hwm(0),
+	_output_fmt(nullptr)
 	{
 		ping_width_ms = width_ms;
 		std::cout << "Constructing DSP with width of " << ping_width_ms << " ms" << std::endl;
@@ -163,7 +164,7 @@ namespace RCT{
 		_c_v.notify_all();
 		_c_thread->join();
 
-
+		delete _c_thread;
 		delete _thread;
 	}
 
@@ -447,6 +448,8 @@ namespace RCT{
 		// _ostr5.close();
 		// _ostr6.close();
 		#endif
+
+		delete threshold_ptr;
 		std::cout << "Classifier received " << sample_counter << " samples, estimated " << sample_counter * _ms_per_sample / 1e3 << " s" << std::endl;
 	}
 
@@ -598,7 +601,11 @@ namespace RCT{
 
 	void DSP_V3::setOutputDir(const std::string& dir, const std::string& fmt){
 		_output_dir = dir;
-		_output_fmt = new char[fmt.length() + dir.length() + 1];
+		if(_output_fmt != nullptr)
+		{
+			delete[] _output_fmt;
+		}
+		_output_fmt = new char[fmt.length() + dir.length() + 2];
 		sprintf(_output_fmt, "%s/%s", dir.c_str(), fmt.c_str());
 	}
 

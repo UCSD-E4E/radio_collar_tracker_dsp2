@@ -1,24 +1,29 @@
-from radio_collar_tracker_dsp2 import PingFinder
-import time
+"""RCT DSP2 C++ Tests
+"""
 import datetime as dt
-import glob
-import os
+import time
+from pathlib import Path
+from unittest.mock import Mock
+
+from RCTDSP2 import PingFinder
 
 SDR_ENABLED = True
 GPS_ENABLED = True
 USB_ENABLED = True
-
-callback_called = 0
-def phony_callback(now: dt.datetime, amplitude:float, frequency: int):
-    assert(isinstance(now, dt.datetime))
-    assert(isinstance(amplitude, float))
-    assert(isinstance(frequency, int))
-    global callback_called
-    callback_called += 1
-    print(f'Got ping at {now}, amplitude is {amplitude} on frequency {frequency} Hz')
+TX_ENABLED = False
+# callback_called = 0
+# def phony_callback(now: dt.datetime, amplitude:float, frequency: int):
+#     assert(isinstance(now, dt.datetime))
+#     assert(isinstance(amplitude, float))
+#     assert(isinstance(frequency, int))
+#     global callback_called
+#     callback_called += 1
+#     print(f'Got ping at {now}, amplitude is {amplitude} on frequency {frequency} Hz')
 
 def test_run():
-    RUN_TIME = 8
+    """Test Run
+    """
+    run_time = 8
     ping_finder = PingFinder()
     ping_finder.gain = 14.0
     ping_finder.sampling_rate = 2500000
@@ -32,20 +37,33 @@ def test_run():
     ping_finder.ping_min_len_mult = 0.5
     ping_finder.target_frequencies = [173964000, 173900000]
 
+    phony_callback = Mock()
+
     ping_finder.register_callback(phony_callback)
-    raw_files = glob.glob(os.path.join(ping_finder.output_dir, f"RAW_DATA_{ping_finder.run_num:06d}_*"))
-    for f in raw_files:
-        os.remove(f)
+    if TX_ENABLED:
+        phony_callback.assert_called()
+        assert isinstance(phony_callback.call_args.args[0], dt.datetime)
+        assert isinstance(phony_callback.call_args.args[1], float)
+        assert isinstance(phony_callback.call_args.args[2], int)
 
-    if SDR_ENABLED == False:
+
+    output_path = Path(ping_finder.output_dir)
+    for file in output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"):
+        file.unlink()
+
+    if SDR_ENABLED is False:
         return
+    assert ping_finder.run_flag == False
     ping_finder.start()
+    assert ping_finder.run_flag == True
 
-    time.sleep(RUN_TIME)
+    time.sleep(run_time)
 
+    assert ping_finder.run_flag == True
     ping_finder.stop()
-    raw_files = glob.glob(os.path.join(ping_finder.output_dir, f"RAW_DATA_{ping_finder.run_num:06d}_*"))
-    assert(len(raw_files) > 0)
+    assert ping_finder.run_flag == False
+    raw_files = list(output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"))
+    assert len(raw_files) > 0
 
-    file_sizes = [os.path.getsize(f) for f in raw_files]
-    assert(abs(sum(file_sizes) / 2 / 2 / ping_finder.sampling_rate - RUN_TIME) < 1)
+    file_sizes = [f.stat().st_size for f in raw_files]
+    assert abs(sum(file_sizes) / 2 / 2 / ping_finder.sampling_rate - run_time) < 1

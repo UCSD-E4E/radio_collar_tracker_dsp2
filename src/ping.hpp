@@ -2,6 +2,7 @@
 #define __PING_H__
 
 #include <memory>
+#include <cstdint>
 
 namespace RCT{
 	/**
@@ -16,7 +17,7 @@ namespace RCT{
 		 * @param	amplitude	amplitude of ping in dB (reference not important)
 		 * @param	freq		frequency of ping in Hz (reference real world DC)
 		 */
-		Ping(std::uint64_t time_ms, double amplitude, uint64_t freq) : 
+		Ping(uint64_t time_ms, double amplitude, uint64_t freq) : 
 			time_ms{time_ms}, amplitude{amplitude}, frequency(freq){};
 
 		/**
@@ -32,7 +33,7 @@ namespace RCT{
 		/**
 		 * Frequency of ping in Hz (real)
 		 */
-		std::uint64_t frequency;
+		uint64_t frequency;
 	};
 	
 	typedef std::shared_ptr<Ping> PingPtr;

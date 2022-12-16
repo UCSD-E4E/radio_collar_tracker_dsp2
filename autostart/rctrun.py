@@ -1,66 +1,65 @@
-import glob
+import argparse
+import datetime
 import json
 import logging
 import logging.handlers
 import os
-import re
 import subprocess
 import threading
 import time
-from enum import Enum, IntEnum
+from enum import Enum, auto
 from pathlib import Path
+from threading import Event, Condition
+from typing import Any, Callable, Dict, List, Optional
 
 import serial
 import yaml
-from radio_collar_tracker_dsp2 import PingFinder
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
 
+from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
+                              SDR_INIT_STATES)
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
+from RCTDSP2 import PingFinder
 
 WAIT_COUNT = 60
 
-output_dir = None
-testDir = "../testOutput"
-
-class GPS_STATES(IntEnum):
-	get_tty = 0
-	get_msg = 1
-	wait_recycle = 2
-	rdy = 3
-	fail = 4
-
-class SDR_INIT_STATES(IntEnum):
-	find_devices = 0
-	wait_recycle = 1
-	usrp_probe = 2
-	rdy = 3
-	fail = 4
-
-class OUTPUT_DIR_STATES(IntEnum):
-	get_output_dir = 0
-	check_output_dir = 1
-	check_space = 2
-	wait_recycle = 3
-	rdy = 4
-	fail = 5
-
-class RCT_STATES(Enum):
-	init		=	0
-	wait_init	=	1
-	wait_start	=	2
-	start		=	3
-	wait_end	=	4
-	finish		=	5
-	fail		=	6
-
-
+testDir = Path("../testOutput")
 
 class RCTRun:
-    def __init__(self, tcpport: int, test = False):
+    class Event(Enum):
+        """Callback events
+
+        """
+        START_RUN = auto()
+        STOP_RUN = auto()
+
+    class Flags(Enum):
+        """Events
+        """
+        SDR_READY = auto()
+        GPS_READY = auto()
+        STORAGE_READY = auto()
+        INIT_COMPLETE = auto()
+
+    def __init__(self,
+            tcpport: int,
+            test = False, *,
+            config_path: Path = Path('/usr/local/etc/rct_config'),
+            allow_nonmount: bool = False):
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
+        self.__config_path = config_path
+        self.__allow_nonmount = allow_nonmount
+
+        self.__callbacks: Dict[RCTRun.Event, List[Callable[[RCTRun.Event], None]]] = \
+            {evt:[] for evt in RCTRun.Event}
+        self.events: Dict[RCTRun.Event, Condition] = {evt: Condition() for evt in RCTRun.Event}
+
+        self.flags = {evt: Event() for evt in RCTRun.Flags}
+
+        self.__output_path: Optional[Path] = None
 
         if os.getuid() == 0:
             log_dest = Path('/var/log/rct.log')
@@ -96,22 +95,61 @@ class RCTRun:
         self.ping_finder = None
         self.delete_comms_thread = None
 
-        self.init_comms_thread = threading.Thread(target=self.init_comms)
+        self.heatbeat_thread_stop = threading.Event()
+        self.heartbeat_thread: Optional[threading.Thread] = None
 
-        self.init_comms_thread.start()
-        logging.debug("RCTRun init: started comms thread")
+    def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
+        """Registers a new callback for the specified event
 
+        Args:
+            event (Event): Event to register for
+            cb_ (Callable[[Event], None]): Callback function
+        """
+        self.__callbacks[event].append(cb_)
+
+    def execute_cb(self, event: Event) -> None:
+        """Executes an event's callbacks
+
+        Args:
+            event (Event): Event to execute
+        """
+        with self.events[event]:
+            self.events[event].notify_all()
+        for cb_ in self.__callbacks[event]:
+            cb_(event)
+
+    def remove_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
+        """Removes the specified callback from the specified event
+
+        Args:
+            event (Event): Event to remove from
+            cb_ (Callable[[Event], None]): Callback to remove
+        """
+        self.__callbacks[event].remove(cb_)
+
+    def start(self):
+        """Starts all RCTRun Threads
+        """
+        self.init_comms()
         self.init_threads()
+        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
+        self.heartbeat_thread.start()
+
+    def stop(self):
+        self.cmdListener.stop()
+        self.heatbeat_thread_stop.set()
+        self.heartbeat_thread.join()
 
     def init_threads(self):
         """System Initialization thread execution
         """
+        self.flags[self.Flags.INIT_COMPLETE].clear()
         self.init_sdr_thread = threading.Thread(target=self.initSDR,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='SDR Init')
         self.init_output_thread = threading.Thread(target=self.initOutput,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='Output Init')
         self.init_gps_thread = threading.Thread(target=self.initGPS,
-            kwargs={'test':self.test})
+            kwargs={'test':self.test}, name='GPS Init')
         self.init_sdr_thread.start()
         logging.debug("RCTRun init: started SDR thread")
         self.init_output_thread.start()
@@ -126,12 +164,25 @@ class RCTRun:
         self.init_gps_thread.join()
         self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
 
+        self.flags[self.Flags.INIT_COMPLETE].set()
+
+
+    def uib_heartbeat(self):
+        while not self.heatbeat_thread_stop.is_set():
+            if self.heatbeat_thread_stop.wait(timeout=1):
+                break
+            else:
+                self.UIB_Singleton.send_heartbeat()
+
     def init_comms(self):
         """Sets up the connection configuration
         """
         if self.cmdListener is None:
             logging.debug("CommandListener initialized")
-            self.cmdListener = CommandListener(self.UIB_Singleton, self.tcpport)
+            self.cmdListener = CommandListener(
+                UIboard=self.UIB_Singleton,
+                port=self.tcpport,
+                config_path=self.__config_path)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stop_run_cb)
@@ -140,10 +191,12 @@ class RCTRun:
     def stop_run_cb(self, packet, addr): # pylint: disable=unused-argument
         """Callback for the stop recording command
         """
+        log = logging.getLogger('Stop Run Callback')
+        log.info("Stop Run Callback")
         self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
-        self.doRun = False
         if self.ping_finder is not None:
             self.ping_finder.stop()
+        self.execute_cb(self.Event.STOP_RUN)
         self.init_threads()
 
 
@@ -153,30 +206,30 @@ class RCTRun:
 
     def run(self):
         log = logging.getLogger('run')
+        self.execute_cb(self.Event.START_RUN)
         try:
             if self.cmdListener.startFlag:
                 self.UIB_Singleton.system_state = RCT_STATES.start.value
 
                 if not self.test:
-                    meta_files = glob.glob(os.path.join(output_dir, 'RUN_*'))
-                    if len(meta_files) > 0:
-                        run_num = int(re.sub("[^0-9]", "", sorted(meta_files)[-1].replace(output_dir, ''))) + 1
+                    run_dirs = list(self.__output_path.glob('RUN_*'))
+                    if len(run_dirs) > 0:
+                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:]) + 1
                         logging.debug("Run Num:")
                         logging.debug(run_num)
                     else:
                         run_num = 1
-                run_dir = os.path.join(output_dir, 'RUN_%06d' % (run_num))
+                run_dir = self.__output_path.joinpath(f'RUN_{run_num:06d}')
                 if not self.test:
-                    os.makedirs(run_dir)
+                    run_dir.mkdir(parents=True, exist_ok=True)
                 else:
                     try:
-                        os.makedirs(run_dir)
+                        run_dir.mkdir(parents=True, exist_ok=True)
                     except:
                         pass
 
-                localize_file = os.path.join(run_dir, 'LOCALIZE_%06d' % (run_num))
-                with open(localize_file, 'w') as file:
-                    file.write("")
+                localize_file = run_dir.joinpath(f'LOCALIZE_{run_num:06d}')
+                localize_file.touch()
                     
                 self.cmdListener.setRun(run_dir, run_num)
                 time.sleep(1)
@@ -198,7 +251,7 @@ class RCTRun:
                     logging.debug("Enterring start pingFinder5")
                     self.ping_finder.enable_test_data = False
                     logging.debug("Enterring start pingFinder6")
-                    self.ping_finder.output_dir = self.cmdListener.options.getOption("SYS_outputDir")
+                    self.ping_finder.output_dir = run_dir.as_posix()
                     logging.debug("Enterring start pingFinder7")
                     self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
                     logging.debug("Enterring start pingFinder8")
@@ -210,126 +263,23 @@ class RCTRun:
                     logging.debug("Enterring start pingFinder11")
                     self.ping_finder.target_frequencies = self.cmdListener.options.getOption("TGT_frequencies")
 
-                    self.ping_finder.register_callback(self.UIB_Singleton.sendPing)
+                    self.ping_finder.register_callback(self.UIB_Singleton.send_ping)
 
                     self.ping_finder.start()
                     logging.debug("Started pingFinder")
         except Exception as exc:
             log.exception(exc)
-
-
-
-
-        
+            raise exc
 
     def initGPS(self, test = False):
-        log = logging.getLogger('InitGPS')
-        try:
-            self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
-
-            GPSInitialized = False
-            counter = 0
-            tty_stream = None
-
-            prev_gps = 0
-
-            if self.UIB_Singleton.testMode:
-                self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                logging.debug(f"External Sensor State: {self.UIB_Singleton.sensor_state}")
-                return
-
-            while not GPSInitialized:
-                if self.UIB_Singleton.sensor_state == GPS_STATES.get_tty:
-                    tty_device = self.get_var('GPS_device')
-                    tty_device = self.serialPort
-                    tty_baud = self.get_var('GPS_baud')
-                    if not test:
-                        try:
-                            tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
-                        except serial.SerialException as exc:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: bad serial!")
-                            print(exc)
-                            continue
-                        if tty_stream is None:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
-                            continue
-                        else:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                    else:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.get_msg:
-                    if not test:
-                        try:
-                            line = tty_stream.readline().decode("utf-8")
-                        except serial.serialutil.SerialException as exc:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
-                            continue
-                        if line is not None and line != "":
-                            msg = None
-                            try:
-                                msg = json.loads(line)
-                                self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                            except json.JSONDecodeError as exc:
-                                self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                print("GPS fail: bad message!")
-                                self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                                continue
-                        else:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                    else:
-                        time.sleep(1)
-                        self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.wait_recycle:
-                    time.sleep(1)
-                    if counter > WAIT_COUNT / 2:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                        print("GPS fail: bad state!")
-                        continue
-                    else:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.fail:
-                    time.sleep(10)
-                    self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
-                else: 
-                    self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                    GPSInitialized = True
-                    print("GPS: Initialized")
-                    if not test:
-                        try:
-                            line = tty_stream.readline().decode("utf-8")
-                        except serial.serialutil.SerialException as exc:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
-                            continue
-                        if line is not None and line != "":
-                            msg = None
-                            try:
-                                msg = json.loads(line)
-                                GPSInitialized = True
-                            except json.JSONDecodeError as exc:
-                                self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                print("GPS fail: bad message!")
-                                print(exc)
-                                self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                                continue
-                    else:
-                        time.sleep(1)
-                    current_gps = datetime.datetime.now()
-                    if prev_gps == 0:
-                        continue
-                    else:
-                        if (current_gps - prev_gps).total_seconds() > 5:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.wait_recycle
-                    prev_gps = current_gps
-        except Exception as exc:
-            log.exception(exc)
+        # pylint: disable=unused-argument
+        self.flags[self.Flags.GPS_READY].clear()
+        self.UIB_Singleton.gps_ready.wait()
+        self.flags[self.Flags.GPS_READY].set()
 
     def initSDR(self, test = False):
         log = logging.getLogger("SDR Init")
+        self.flags[self.Flags.SDR_READY].clear()
         initialized = False
         devicesFound = False
         usrpDeviceInitialized = False
@@ -376,10 +326,11 @@ class RCTRun:
         except Exception as exc:
             log.exception(exc)
             raise exc
+        self.flags[self.Flags.SDR_READY].set()
 
     def initOutput(self, test):
-        global output_dir
         log = logging.getLogger('InitOutput')
+        self.flags[self.Flags.STORAGE_READY].clear()
         try:
             outputDirInitialized = False
             dirNameFound = False
@@ -392,21 +343,29 @@ class RCTRun:
                 if not dirNameFound:
                     output_dir = self.get_var('SYS_outputDir')
                     if output_dir is not None:
+                        self.__output_path = Path(output_dir)
                         dirNameFound = True
                         print("OUTPUTDIR_INIT:\trctConfig Directory:")
                         print("OUTPUTDIR_INIT:\t" + output_dir)
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_output_dir
                 elif not outputDirFound:
                     if test:
-                        output_dir = testDir
-                    if os.path.isdir(output_dir):
+                        self.__output_path = testDir
+                    valid_dir = True
+                    if not self.__output_path.is_dir():
+                        valid_dir = False
+                        log.error("Output path is not a directory")
+                    if not self.__allow_nonmount and not self.__output_path.is_mount():
+                        valid_dir = False
+                        log.error("Output path is not a mount, nonmount not permitted")
+                    if valid_dir:
                         outputDirFound = True
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.check_space
                     else:
                         time.sleep(10)
                         self.UIB_Singleton.storage_state = OUTPUT_DIR_STATES.wait_recycle
                 elif not enoughSpace:
-                    df = subprocess.Popen(['df', '-B1', output_dir], stdout=subprocess.PIPE)
+                    df = subprocess.Popen(['df', '-B1', self.__output_path.as_posix()], stdout=subprocess.PIPE)
                     output = df.communicate()[0].decode('utf-8')
                     device, size, used, available, percent, mountpoint = output.split('\n')[1].split()
                     if int(available) > 20 * 60 * 1500000 * 4:
@@ -421,16 +380,39 @@ class RCTRun:
                         print("OUTPUTDIR_INIT:\tNOT ENOUGH STORAGE SPACE")
         except Exception as exc:
             log.exception(exc)
+            raise exc
+        self.flags[self.Flags.STORAGE_READY].set()
 
 
-    def get_var(self, var: str):
-        var_file = open('/usr/local/etc/rct_config')
-        config = yaml.safe_load(var_file)
+    def get_var(self, var: str) -> Any:
+        """Retrieves a parameter from config
+
+        Args:
+            var (str): Parameter key
+
+        Returns:
+            Any: Key value
+        """
+        with open(self.__config_path, 'r', encoding='ascii') as handle:
+            config = yaml.safe_load(handle)
         return config[var]
-        
 
 def main():
-    RCTRun(tcpport=9000)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', '-c', type=Path)
+    parser.add_argument('--no_mount', action='store_true')
+    args = parser.parse_args()
+
+    kwargs = {
+        'tcpport': 9000
+    }
+    if args.config:
+        kwargs['config_path'] = args.config
+    kwargs['allow_nonmount'] = args.no_mount
+    app = RCTRun(**kwargs)
+    app.start()
+    while True:
+        pass
 
 if __name__ == "__main__":
     main()

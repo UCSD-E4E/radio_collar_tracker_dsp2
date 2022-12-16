@@ -155,3 +155,4 @@ cython_debug/
 # Cmake build folder
 build
 RAW_DATA*
+rct_config

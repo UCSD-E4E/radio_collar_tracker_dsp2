@@ -42,6 +42,7 @@ jobs:
         git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_comms /tmp/radio_collar_tracker_comms
         mkdir /tmp/airspyone_host/build
         mkdir /tmp/hackrf/host/build
+        mkdir /tmp/wheels
 
         cd /tmp/hackrf/host/build
         cmake ../
@@ -58,12 +59,17 @@ jobs:
         python -m pip install -U wheel
         cd /tmp/radio_collar_tracker_comms
         python -m pip install -U .
+        python setup.py bdist_wheel
+        cp ./dist/*.whl /tmp/wheels/
         cd $GITHUB_WORKSPACE
         git submodule update --init --recursive
         python setup.py bdist_wheel
+        cp ./dist/*.whl /tmp/wheels/
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
         # Destination path
-        path: ./dist/*.whl
+        name: offline-install
+        path: |
+          /tmp/wheels/*.whl
         

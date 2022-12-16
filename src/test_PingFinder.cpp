@@ -20,7 +20,7 @@ int main()
 
     pf->start();
 
-    sleep(8);
+    sleep(16);
 
     pf->stop();
     

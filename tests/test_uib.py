@@ -71,7 +71,7 @@ class FakeUIBoard:
             while True:
                 # do stuff
                 now = dt.datetime.now()
-                tme = now.strftime('%H%M%S')
+                tme = now.strftime('%H%M%S.00')
                 dte = now.strftime('%d%m%y')
 
                 output_str = ("{\"seq\": %d, \"lat\": %ld, \"lon\": %ld, \"hdg\": %d," # pylint: disable=consider-using-f-string
@@ -170,7 +170,7 @@ def create_ui_board() -> Tuple[dut.UIBoard, MockSerial]:
     device = dut.UIBoard(
         port=mock_serial.port,
         baud=9600,
-        testMode=False
+        test_mode=False
     )
     yield device, mock_serial
 
@@ -181,11 +181,4 @@ def test_send_heartbeat(ui_board_devices: Tuple[dut.UIBoard, MockSerial]):
         ui_board_devices (Tuple[dut.UIBoard, MockSerial]): _description_
     """
     ui_board = ui_board_devices[0]
-    packet = rctHeartBeatPacket(
-        systemState=2,
-        sdrState=3,
-        sensorState=3,
-        storageState=4,
-        switchState=1
-    )
-    ui_board.handleHeartbeatPacket(packet=packet)
+    ui_board.send_heartbeat()

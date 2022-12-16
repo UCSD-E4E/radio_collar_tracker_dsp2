@@ -214,7 +214,7 @@ class RCTRun:
                 if not self.test:
                     run_dirs = list(self.__output_path.glob('RUN_*'))
                     if len(run_dirs) > 0:
-                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:])
+                        run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:]) + 1
                         logging.debug("Run Num:")
                         logging.debug(run_num)
                     else:
@@ -251,7 +251,7 @@ class RCTRun:
                     logging.debug("Enterring start pingFinder5")
                     self.ping_finder.enable_test_data = False
                     logging.debug("Enterring start pingFinder6")
-                    self.ping_finder.output_dir = self.cmdListener.options.getOption("SYS_outputDir")
+                    self.ping_finder.output_dir = run_dir.as_posix()
                     logging.debug("Enterring start pingFinder7")
                     self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
                     logging.debug("Enterring start pingFinder8")
@@ -263,7 +263,7 @@ class RCTRun:
                     logging.debug("Enterring start pingFinder11")
                     self.ping_finder.target_frequencies = self.cmdListener.options.getOption("TGT_frequencies")
 
-                    self.ping_finder.register_callback(self.UIB_Singleton.sendPing)
+                    self.ping_finder.register_callback(self.UIB_Singleton.send_ping)
 
                     self.ping_finder.start()
                     logging.debug("Started pingFinder")
@@ -272,107 +272,9 @@ class RCTRun:
             raise exc
 
     def initGPS(self, test = False):
-        log = logging.getLogger('InitGPS')
+        # pylint: disable=unused-argument
         self.flags[self.Flags.GPS_READY].clear()
-        try:
-            self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
-
-            GPSInitialized = False
-            counter = 0
-            tty_stream = None
-
-            prev_gps = 0
-
-            if self.UIB_Singleton.testMode:
-                self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                logging.debug(f"External Sensor State: {self.UIB_Singleton.sensor_state}")
-                return
-
-            while not GPSInitialized:
-                if self.UIB_Singleton.sensor_state == GPS_STATES.get_tty:
-                    tty_device = self.get_var('GPS_device')
-                    tty_device = self.serialPort
-                    tty_baud = self.get_var('GPS_baud')
-                    if not test:
-                        try:
-                            tty_stream = serial.Serial(tty_device, tty_baud, timeout = 1)
-                        except serial.SerialException:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            log.exception("Failed to create serial device")
-                            continue
-                        else:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                    else:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.get_msg:
-                    if not test:
-                        try:
-                            line = tty_stream.readline().decode("utf-8")
-                        except serial.SerialException as exc:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            log.exception("Failed to read from serial!")
-                            continue
-                        if line is not None and line != "":
-                            msg = None
-                            try:
-                                msg = json.loads(line)
-                                self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                            except json.JSONDecodeError as exc:
-                                self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                log.exception("GPS fail: bad message!: %s", msg)
-                                self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                                continue
-                        else:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                    else:
-                        time.sleep(1)
-                        self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.wait_recycle:
-                    time.sleep(1)
-                    if counter > WAIT_COUNT / 2:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                        print("GPS fail: bad state!")
-                        continue
-                    else:
-                        self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                elif self.UIB_Singleton.sensor_state == GPS_STATES.fail:
-                    time.sleep(10)
-                    self.UIB_Singleton.sensor_state = GPS_STATES.get_tty
-                else: 
-                    self.UIB_Singleton.sensor_state = GPS_STATES.rdy
-                    GPSInitialized = True
-                    print("GPS: Initialized")
-                    if not test:
-                        try:
-                            line = tty_stream.readline().decode("utf-8")
-                        except serial.SerialException as exc:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                            print("GPS fail: no serial!")
-                            continue
-                        if line is not None and line != "":
-                            msg = None
-                            try:
-                                msg = json.loads(line)
-                                GPSInitialized = True
-                            except json.JSONDecodeError as exc:
-                                self.UIB_Singleton.sensor_state = GPS_STATES.fail
-                                print("GPS fail: bad message!")
-                                print(exc)
-                                self.UIB_Singleton.sensor_state = GPS_STATES.get_msg
-                                continue
-                    else:
-                        time.sleep(1)
-                    current_gps = datetime.datetime.now()
-                    if prev_gps == 0:
-                        continue
-                    else:
-                        if (current_gps - prev_gps).total_seconds() > 5:
-                            self.UIB_Singleton.sensor_state = GPS_STATES.wait_recycle
-                    prev_gps = current_gps
-        except Exception as exc:
-            log.exception(exc)
-            raise exc
+        self.UIB_Singleton.gps_ready.wait()
         self.flags[self.Flags.GPS_READY].set()
 
     def initSDR(self, test = False):

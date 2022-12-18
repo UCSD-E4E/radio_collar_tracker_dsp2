@@ -65,6 +65,10 @@ jobs:
         git submodule update --init --recursive
         python setup.py bdist_wheel
         cp ./dist/*.whl /tmp/wheels/
+    - name: Obtain dependencies
+      run: |
+        wget https://files.pythonhosted.org/packages/75/9f/456a34915e73ae9c102cab1a1ee77adec27ede4ae1756cc82c8fdb46f55c/nmcli-1.1.2-py3-none-any.whl -O /tmp/wheels/nmcli-1.1.2-py3-none-any.whl
+        wget https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl -O /tmp/wheels/pyserial-3.5-py2.py3-none-any.whl
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:

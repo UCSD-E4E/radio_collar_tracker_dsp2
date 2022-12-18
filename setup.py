@@ -147,6 +147,7 @@ setup(
         'pyserial',
         'RCTComms >= 0.0.0.8',
         'pyyaml',
+        'nmcli',
     ],
     entry_points={
         'console_scripts':[

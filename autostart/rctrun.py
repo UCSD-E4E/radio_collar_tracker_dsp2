@@ -9,7 +9,7 @@ import threading
 import time
 from enum import Enum, auto
 from pathlib import Path
-from threading import Event, Condition
+from threading import Condition, Event
 from typing import Any, Callable, Dict, List, Optional
 
 import serial
@@ -17,6 +17,7 @@ import yaml
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
 from RCTComms.transport import RCTTCPClient
 
+from autostart.networking import NetworkMonitor
 from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
                               SDR_INIT_STATES)
 from autostart.tcp_command import CommandListener
@@ -97,6 +98,9 @@ class RCTRun:
 
         self.heatbeat_thread_stop = threading.Event()
         self.heartbeat_thread: Optional[threading.Thread] = None
+        self.network_monitor = NetworkMonitor(
+            network_profile=self.get_var('SYS_network')
+        )
 
     def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
         """Registers a new callback for the specified event
@@ -134,11 +138,13 @@ class RCTRun:
         self.init_threads()
         self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
         self.heartbeat_thread.start()
+        self.network_monitor.start()
 
     def stop(self):
         self.cmdListener.stop()
         self.heatbeat_thread_stop.set()
         self.heartbeat_thread.join()
+        self.network_monitor.stop()
 
     def init_threads(self):
         """System Initialization thread execution

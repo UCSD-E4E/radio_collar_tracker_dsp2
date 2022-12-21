@@ -48,7 +48,9 @@ class RCTOpts(object):
                 'SYS_autostart',
                 'SYS_outputDir',
                 'SDR_samplingFreq',
-                'SDR_centerFreq']
+                'SDR_centerFreq',
+                'SYS_network',
+                'SYS_wifiMonitorInterval']
         self._params = {}
         self.loadParams()
 
@@ -105,6 +107,10 @@ class RCTOpts(object):
             assert(param > 0)
         elif option == "SDR_gain":
             assert(isinstance(param, float))
+        elif option == 'SYS_network':
+            assert isinstance(param, str)
+        elif option == 'SYS_wifiMonitorInterval':
+            assert isinstance(param, int)
 
         self._params[option] = param
 
@@ -160,6 +166,10 @@ class RCTOpts(object):
                 assert(value > 0)
             elif key == "SDR_gain":
                 self._params[key] = value
+            elif key == 'SYS_network':
+                self._params[key] = str(value)
+            elif key == 'SYS_wifiMonitorInterval':
+                self._params[key] = int(value)
 
 
 

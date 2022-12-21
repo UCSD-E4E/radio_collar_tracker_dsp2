@@ -99,7 +99,8 @@ class RCTRun:
         self.heatbeat_thread_stop = threading.Event()
         self.heartbeat_thread: Optional[threading.Thread] = None
         self.network_monitor = NetworkMonitor(
-            network_profile=self.get_var('SYS_network')
+            network_profile=self.get_var('SYS_network'),
+            monitor_interval=int(self.get_var('SYS_wifiMonitorInterval'))
         )
 
     def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:

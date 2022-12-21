@@ -1,3 +1,3 @@
 '''RCT Autostart
 '''
-__VERSION__ = '1.0.0.10'
+__VERSION__ = '1.0.0.11'

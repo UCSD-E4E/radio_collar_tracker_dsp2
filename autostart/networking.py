@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import signal
+import sys
 import threading
+from argparse import ArgumentParser
 from enum import Enum, auto
 from typing import Callable, Dict, List, Optional
 
@@ -123,3 +126,42 @@ class NetworkMonitor:
             else:
                 error_status = False
                 self.__flags[self.Flag.NETWORK_SET].set()
+
+class _TestMonitorApp:
+    """App for testing monitor
+    """
+    def __init__(self):
+        parser = ArgumentParser()
+        parser.add_argument('--profile', type=str, dest='profile', required=True)
+        parser.add_argument('--interval', type=int, default=1, dest='interval', required=False)
+        parser.add_argument('--threshold', typ=int, default=5, dest='threshold', required=False)
+
+        args = parser.parse_args()
+
+        self.monitor = NetworkMonitor(
+            network_profile=args.profile,
+            monitor_interval=args.interval,
+            error_threshold=args.threshold
+        )
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def run(self):
+        """Run
+        """
+        self.monitor.start()
+        signal.pause()
+
+    def signal_handler(self, sig, frame): # pylint: disable=unused-argument
+        """Signal handler
+
+        """
+        self.monitor.stop()
+        sys.exit(0)
+
+def test_run():
+    """Test main
+    """
+    _TestMonitorApp().run()
+
+if __name__ == '__main__':
+    test_run()

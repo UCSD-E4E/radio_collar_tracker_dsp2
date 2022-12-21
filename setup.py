@@ -151,7 +151,8 @@ setup(
     ],
     entry_points={
         'console_scripts':[
-            'rctrun=autostart.rctrun:main'
+            'rctrun=autostart.rctrun:main',
+            'test_networkmonitor=autostart.networking:test_run'
         ]
     },
     extras_require={

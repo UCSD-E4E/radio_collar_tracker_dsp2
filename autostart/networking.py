@@ -6,6 +6,7 @@ import logging
 import signal
 import sys
 import threading
+import time
 from argparse import ArgumentParser
 from enum import Enum, auto
 from typing import Callable, Dict, List, Optional
@@ -126,11 +127,25 @@ class NetworkMonitor:
             else:
                 error_status = False
                 self.__flags[self.Flag.NETWORK_SET].set()
+                time.sleep(self.__monitor_interval)
+                self.__log.debug('Currently connected to %s', self.__profile_name)
 
 class _TestMonitorApp:
     """App for testing monitor
     """
     def __init__(self):
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+
+        error_formatter = logging.Formatter(
+            fmt='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s',
+            datefmt="%Y-%m-%d %H:%M:%S")
+        console_handler.setFormatter(error_formatter)
+        root_logger.addHandler(console_handler)
+        logging.Formatter.converter = time.gmtime
+
         parser = ArgumentParser()
         parser.add_argument('--profile', type=str, dest='profile', required=True)
         parser.add_argument('--interval', type=int, default=1, dest='interval', required=False)
@@ -143,6 +158,7 @@ class _TestMonitorApp:
             monitor_interval=args.interval,
             error_threshold=args.threshold
         )
+        self.monitor.register_cb(NetworkMonitor.Event.ON_NETWORK_LOSS, self.__on_network_fail)
         signal.signal(signal.SIGINT, self.signal_handler)
 
     def run(self):
@@ -157,6 +173,9 @@ class _TestMonitorApp:
         """
         self.monitor.stop()
         sys.exit(0)
+
+    def __on_network_fail(self, event: NetworkMonitor.Event) -> None:
+        logging.debug('On Network Fail called with %s', event)
 
 def test_run():
     """Test main

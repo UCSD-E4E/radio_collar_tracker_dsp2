@@ -134,7 +134,7 @@ class _TestMonitorApp:
         parser = ArgumentParser()
         parser.add_argument('--profile', type=str, dest='profile', required=True)
         parser.add_argument('--interval', type=int, default=1, dest='interval', required=False)
-        parser.add_argument('--threshold', typ=int, default=5, dest='threshold', required=False)
+        parser.add_argument('--threshold', type=int, default=5, dest='threshold', required=False)
 
         args = parser.parse_args()
 

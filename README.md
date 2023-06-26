@@ -1,4 +1,6 @@
 # Setup
+This requires Ubuntu 20.04 or later.
+
 1. Get `fftw3`
     1. `wget http://www.fftw.org/fftw-3.3.8.tar.gz`
     2. `tar -xzf fftw-3.3.8.tar.gz`
@@ -63,6 +65,7 @@
 
 ---
 # Setup for Rasberry-Pi4
+This requires Raspbian 11 (bullseye) or later
 Requirements:
     1. `python 3.9`
 1. Get `fftw3`

@@ -24,7 +24,7 @@ from RCTComms.comms import (EVENTS, mavComms, rctACKCommand, rctBinaryPacket,
                             rctOptionsPacket, rctSETFCommand, rctSETOPTCommand,
                             rctSTARTCommand, rctSTOPCommand, rctUPGRADECommand,
                             rctUpgradeStatusPacket)
-from RCTComms.transport import RCTTCPClient, RCTTCPServer
+from RCTComms.transport import RCTAbstractTransport
 
 from autostart.UIB_instance import UIBoard
 
@@ -194,29 +194,27 @@ class RCTOpts(object):
         return self._params
 
 
-class CommandListener(object):
+class CommandListener:
     """docstring for CommandListener"""
     def __init__(self,
-            UIboard: UIBoard,
-            port: int,
-            addr: str, *,
+            ui_board: UIBoard,
+            transport: RCTAbstractTransport,
+            *,
             config_path: Path = Path('/usr/local/etc/rct_config')):
-        super(CommandListener, self).__init__()
-        self.sock = RCTTCPClient(port, addr)
-        self.port = mavComms(self.sock)
-        self.portAddr = port
+        self.transport = transport
+        self.port = mavComms(self.transport)
 
         self.ping_file = None
         self.num = None
         self.newRun = False
         self._run = True
-        
+
         self.state = COMMS_STATES.disconnected
         self.sender = threading.Thread(target=self._sender, name='CommandListener_sender', daemon=True)
         self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_reconnect')
 
         self.startFlag = False
-        self.UIBoard = UIboard
+        self.UIBoard = ui_board
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()
 
@@ -283,7 +281,7 @@ class CommandListener(object):
                 self.startFlag = False
                 self.UIBoard.switch = 0
                 self.port.stop()
-                while self.sock.isOpen():
+                while self.transport.isOpen():
                     time.sleep(1)
                     print("still open")
                 print("sock closed")
@@ -301,7 +299,7 @@ class CommandListener(object):
         self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_sender')
 
         self.port.start()
-        while not self.sock.isOpen():
+        while not self.transport.isOpen():
             time.sleep(1)
         self.state = COMMS_STATES.connected
         print("starting sender")

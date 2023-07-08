@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 import serial
 import yaml
 from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
-from RCTComms.transport import RCTTCPClient
+from RCTComms.transport import RCTTransportFactory
 
 from autostart.networking import NetworkMonitor
 from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
@@ -45,7 +45,6 @@ class RCTRun:
         INIT_COMPLETE = auto()
 
     def __init__(self,
-            tcpport: int,
             test = False, *,
             config_path: Path = Path('/usr/local/etc/rct_config'),
             allow_nonmount: bool = False):
@@ -86,12 +85,11 @@ class RCTRun:
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
         testGPS = self.get_var('GPS_mode')
-        self.gcsIP = self.get_var('GCS_IP')
+        self.gcs_spec = self.get_var('GCS_spec')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         logging.debug("RCTRun init: created UIB")
         self.cmdListener = None
         self.test = test
-        self.tcpport = tcpport
 
         self.serialPort = serialPort
         self.ping_finder = None
@@ -187,10 +185,10 @@ class RCTRun:
         """
         if self.cmdListener is None:
             logging.debug("CommandListener initialized")
+            transport = RCTTransportFactory.create_transport(self.gcs_spec)
             self.cmdListener = CommandListener(
-                UIboard=self.UIB_Singleton,
-                port=self.tcpport,
-                addr=self.gcsIP,
+                ui_board=self.UIB_Singleton,
+                transport=transport,
                 config_path=self.__config_path)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
@@ -413,7 +411,6 @@ def main():
     args = parser.parse_args()
 
     kwargs = {
-        'tcpport': 9000
     }
     if args.config:
         kwargs['config_path'] = args.config

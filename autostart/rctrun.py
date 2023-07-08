@@ -190,7 +190,7 @@ class RCTRun:
             self.cmdListener = CommandListener(
                 UIboard=self.UIB_Singleton,
                 port=self.tcpport,
-                addr=self.gcsIP
+                addr=self.gcsIP,
                 config_path=self.__config_path)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)

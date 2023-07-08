@@ -70,7 +70,7 @@ class RCTOpts(object):
 
     def getOption(self, option: str):
         return self._params[option]
-    
+
 
     def setOption(self, option, param):
         if option == "DSP_pingWidth":
@@ -198,10 +198,11 @@ class CommandListener(object):
     """docstring for CommandListener"""
     def __init__(self,
             UIboard: UIBoard,
-            port: int, *,
+            port: int,
+            addr: str, *,
             config_path: Path = Path('/usr/local/etc/rct_config')):
         super(CommandListener, self).__init__()
-        self.sock = RCTTCPServer(port)
+        self.sock = RCTTCPClient(port, addr)
         self.port = mavComms(self.sock)
         self.portAddr = port
 
@@ -290,7 +291,7 @@ class CommandListener(object):
             except Exception as e:
                 print("Early Fail!")
                 print(e)
-                    
+
                 time.sleep(1)
                 continue
 
@@ -361,7 +362,7 @@ class CommandListener(object):
         opts = self.options.getCommsOptions()
 
         print("Get Comms OPts: ", opts)
-        
+
         msg = rctOptionsPacket(packet.scope, **opts)
         self._sendAck(0x04, True)
         self.port.sendToGCS(msg)
@@ -485,8 +486,8 @@ class CommandListener(object):
         now = datetime.datetime.now()
         packet = rctACKCommand(id, result, now)
         self.port.sendToGCS(packet)
-                        
-        
+
+
 
     def setup(self):
         self.port.registerCallback(

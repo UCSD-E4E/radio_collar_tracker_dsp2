@@ -11,5 +11,6 @@ SDR_samplingFreq: 1500000
 SYS_autostart: false
 SYS_outputDir: ../testOutput
 TGT_frequencies: [173964000]
+GCS_IP: 192.168.1.1
 SYS_network: 'ubnt'
 SYS_wifiMonitorInterval: 15

@@ -86,6 +86,7 @@ class RCTRun:
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
         testGPS = self.get_var('GPS_mode')
+        self.gcsIP = self.get_var('GCS_IP')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         logging.debug("RCTRun init: created UIB")
         self.cmdListener = None
@@ -189,6 +190,7 @@ class RCTRun:
             self.cmdListener = CommandListener(
                 UIboard=self.UIB_Singleton,
                 port=self.tcpport,
+                addr=self.gcsIP
                 config_path=self.__config_path)
             logging.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)

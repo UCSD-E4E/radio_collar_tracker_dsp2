@@ -145,7 +145,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         'pyserial',
-        'RCTComms >= 0.0.0.8',
+        'RCTComms >= 0.0.0.10',
         'pyyaml',
         'nmcli',
     ],

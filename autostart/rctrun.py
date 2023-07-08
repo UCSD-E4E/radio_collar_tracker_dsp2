@@ -97,10 +97,13 @@ class RCTRun:
 
         self.heatbeat_thread_stop = threading.Event()
         self.heartbeat_thread: Optional[threading.Thread] = None
-        self.network_monitor = NetworkMonitor(
-            network_profile=self.get_var('SYS_network'),
-            monitor_interval=int(self.get_var('SYS_wifiMonitorInterval'))
-        )
+        try:
+            self.network_monitor = NetworkMonitor(
+                network_profile=self.get_var('SYS_network'),
+                monitor_interval=int(self.get_var('SYS_wifiMonitorInterval'))
+            )
+        except KeyError:
+            self.network_monitor = None
 
     def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
         """Registers a new callback for the specified event
@@ -138,13 +141,15 @@ class RCTRun:
         self.init_threads()
         self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
         self.heartbeat_thread.start()
-        self.network_monitor.start()
+        if self.network_monitor:
+            self.network_monitor.start()
 
     def stop(self):
         self.cmdListener.stop()
         self.heatbeat_thread_stop.set()
         self.heartbeat_thread.join()
-        self.network_monitor.stop()
+        if self.network_monitor:
+            self.network_monitor.stop()
 
     def init_threads(self):
         """System Initialization thread execution

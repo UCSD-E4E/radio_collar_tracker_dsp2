@@ -8,7 +8,7 @@ import sys
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 
-from autostart import __VERSION__
+__VERSION__ = '1.0.16'
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -161,6 +161,7 @@ setup(
             'numpy',
             'pytest-timeout',
             'mock-serial',
+            'python-semantic-release'
         ]
     }
 )

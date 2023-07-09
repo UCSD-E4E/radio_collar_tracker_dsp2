@@ -203,7 +203,9 @@ class UIBoard:
                     hdg = 0
                     date = datetime.datetime.now()
                     packet = rctVehiclePacket(lat, lon, 0, hdg, date)
-                    print(packet.lat, packet.lon)
+                    self.__log.info("location: %.6f, %.6f",
+                                    packet.lat,
+                                    packet.lon)
                     self.handle_sensor_packet(packet)
                     self.recentLoc = [lat, lon, 0]
                     self.__last_timestamp = date

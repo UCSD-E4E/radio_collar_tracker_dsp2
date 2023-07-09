@@ -148,6 +148,7 @@ class UIBoard:
         if self.test_mode:
             self.sensor_state = GPS_STATES.rdy
             self.__log.debug('External Sensor State: %s', self.sensor_state)
+            return
 
         self.gps_ready.clear()
 
@@ -293,4 +294,3 @@ class UIBoard:
                 continue
             if (now - self.__last_timestamp).total_seconds() > 3:
                 self.__log.warning("Stale location!")
-            

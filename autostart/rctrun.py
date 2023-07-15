@@ -179,11 +179,11 @@ class RCTRun:
 
 
     def uib_heartbeat(self):
+        heartbeat_period = self.get_var('SYS_heartbeat_period')
         while not self.heatbeat_thread_stop.is_set():
-            if self.heatbeat_thread_stop.wait(timeout=1):
+            if self.heatbeat_thread_stop.wait(timeout=heartbeat_period):
                 break
-            else:
-                self.UIB_Singleton.send_heartbeat()
+            self.UIB_Singleton.send_heartbeat()
 
     def init_comms(self):
         """Sets up the connection configuration

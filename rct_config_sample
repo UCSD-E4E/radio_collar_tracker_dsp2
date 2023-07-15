@@ -14,3 +14,4 @@ TGT_frequencies: [173964000]
 SYS_network: 'ubnt'
 SYS_wifiMonitorInterval: 15
 GCS_spec: tcpc://192.168.1.1:9000
+SYS_SYS_heartbeat_period: 5

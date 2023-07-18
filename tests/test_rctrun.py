@@ -4,6 +4,7 @@ import socket
 import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from time import sleep
 from typing import Tuple
 from unittest.mock import Mock
 
@@ -49,13 +50,15 @@ def create_test_env() -> Tuple[Path]:
             'DSP_pingWidth': 27,
             'GPS_baud': 9600,
             'GPS_device': ui_board.serial_pty,
-            'GPS_mode': False,
+            'GPS_mode': True,
             'SDR_centerFreq': 173500000,
             'SDR_gain': 20.0,
             'SDR_samplingFreq': 1500000,
             'SYS_autostart': False,
             'SYS_outputDir': tmp_output_dir,
-            'TGT_frequencies': [173964000]
+            'TGT_frequencies': [173964000],
+            'GCS_spec': 'serial:/dev/ttyUSB0?baud=57600',
+            'SYS_heartbeat_period': 5,
         }
         with NamedTemporaryFile(mode="w+") as handle:
             yaml.safe_dump(config, handle)
@@ -144,3 +147,13 @@ def test_start_runner(running_system: Tuple[RCTRun, gcsComms]):
         assert mav.events[mav.Event.STOP_RUN].wait(timeout=8)
     assert mav.flags[mav.Flags.INIT_COMPLETE].wait(timeout=8)
     assert mav.UIB_Singleton.system_state in [RCT_STATES.start.value, RCT_STATES.wait_end.value]
+
+def test_uib_heartbeats(test_env: Tuple[Path]):
+    config_path, = test_env
+    dut = RCTRun(config_path=config_path,
+                 allow_nonmount=True)
+    dut.UIB_Singleton.send_heartbeat = Mock()
+    dut.heartbeat_thread.start()
+    dut.heartbeat_thread.join()
+    sleep(5)
+    assert dut.UIB_Singleton.send_heartbeat.assert_called_once()

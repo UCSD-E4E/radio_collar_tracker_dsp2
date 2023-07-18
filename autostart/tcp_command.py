@@ -1,31 +1,26 @@
 #!/usr/bin/env python3
 
 import datetime
-import glob
 import json
 import os
-import select
 import socket
 import subprocess
 import sys
 import threading
 import time
-import traceback
-from curses.ascii import CR
 from enum import IntEnum
 from pathlib import Path
-from re import I
 
-import yaml
-from RCTComms.comms import (EVENTS, mavComms, rctACKCommand, rctBinaryPacket,
-                            rctBinaryPacketFactory, rctExceptionPacket,
-                            rctFrequenciesPacket, rctGETFCommand,
-                            rctGETOPTCommand, rctHeartBeatPacket,
-                            rctOptionsPacket, rctSETFCommand, rctSETOPTCommand,
-                            rctSTARTCommand, rctSTOPCommand, rctUPGRADECommand,
+from RCTComms.comms import (EVENTS, mavComms, rctACKCommand,
+                            rctBinaryPacketFactory, rctFrequenciesPacket,
+                            rctGETFCommand, rctGETOPTCommand,
+                            rctHeartBeatPacket, rctOptionsPacket,
+                            rctSETFCommand, rctSETOPTCommand, rctSTARTCommand,
+                            rctSTOPCommand, rctUPGRADECommand,
                             rctUpgradeStatusPacket)
 from RCTComms.transport import RCTAbstractTransport
 
+from autostart.options import RCTOpts
 from autostart.UIB_instance import UIBoard
 
 
@@ -33,165 +28,6 @@ class COMMS_STATES(IntEnum):
     disconnected = 0
     connected = 1
 
-class RCTOpts(object):
-    def __init__(self, *, config_path: Path = Path('/usr/local/etc/rct_config')):
-        self._configFile = config_path
-        self.options = ['DSP_pingWidth',
-                'DSP_pingMin',
-                'DSP_pingMax',
-                'DSP_pingSNR',
-                'SDR_gain',
-                'GPS_mode',
-                'GPS_device',
-                'GPS_baud',
-                'TGT_frequencies',
-                'SYS_autostart',
-                'SYS_outputDir',
-                'SDR_samplingFreq',
-                'SDR_centerFreq',
-                'SYS_network',
-                'SYS_wifiMonitorInterval']
-        self._params = {}
-        self.loadParams()
-
-    def get_var(self, var):
-        retval = []
-        with open(self._configFile) as var_file:
-            config = yaml.safe_load(var_file)
-            retval= config[var]
-        return retval
-
-
-    def loadParams(self):
-        with open(self._configFile) as var_file:
-            config = yaml.safe_load(var_file)
-            for option in config:
-                self._params[option] = config[option]
-
-    def getOption(self, option: str):
-        return self._params[option]
-
-
-    def setOption(self, option, param):
-        if option == "DSP_pingWidth":
-            assert(isinstance(param, float))
-            assert(param > 0)
-        elif option == "DSP_pingSNR":
-            assert(isinstance(param, float))
-            assert(param > 0)
-        elif option == "DSP_pingMax":
-            assert(isinstance(param, float))
-            assert(param > 1)
-        elif option == "DSP_pingMin":
-            assert(isinstance(param, str))
-            assert(param < 1)
-            assert(param > 0)
-        elif option == "GPS_mode":
-            assert(isinstance(param, str))
-            assert(param == 'true' or param == 'false')
-        elif option == "GPS_device":
-            assert(isinstance(param, str))
-        elif option == "GPS_baud":
-            assert(isinstance(param, str))
-            assert(param > 0)
-        elif option == "SYS_autostart":
-            assert(isinstance(param, str))
-            assert(param == 'true' or param == 'false')
-        elif option == "SYS_outputDir":
-            assert(isinstance(param, str))
-        elif option == "SDR_samplingFreq":
-            assert(isinstance(param, int))
-            assert(param > 0)
-        elif option == "SDR_centerFreq":
-            assert(isinstance(param, int))
-            assert(param > 0)
-        elif option == "SDR_gain":
-            assert(isinstance(param, float))
-        elif option == 'SYS_network':
-            assert isinstance(param, str)
-        elif option == 'SYS_wifiMonitorInterval':
-            assert isinstance(param, int)
-
-        self._params[option] = param
-
-    def setOptions(self, options: dict):
-        # Error check first before committing
-        for key, value in options.items():
-            print("Option: ")
-            print(key)
-            print(value)
-            if key == "DSP_pingWidth":
-                self._params[key] = value
-                assert(isinstance(value, float))
-            elif key == "DSP_pingSNR":
-                self._params[key] = value
-                assert(isinstance(value, float))
-                assert(value > 0)
-            elif key == "DSP_pingMax":
-                self._params[key] = value
-                assert(isinstance(value, float))
-                assert(value > 1)
-            elif key == "DSP_pingMin":
-                self._params[key] = value
-                assert(isinstance(value, float))
-                assert(value < 1)
-                assert(value > 0)
-            elif key == "GPS_mode":
-                self._params[key] = value
-                assert(isinstance(value, str))
-                assert(value == 'true' or value == 'false')
-            elif key == "GPS_device":
-                self._params[key] = value
-                assert(isinstance(value, str))
-            elif key == "GPS_baud":
-                self._params[key] = value
-                assert(isinstance(value, int))
-                assert(value > 0)
-            elif key == "TGT_frequencies":
-                self._params[key] = value
-            elif key == "SYS_autostart":
-                self._params[key] = value
-                assert(isinstance(value, str))
-                assert(value == 'true' or value == 'false')
-            elif key == "SYS_outputDir":
-                self._params[key] = value
-                assert(isinstance(value, str))
-            elif key == "SDR_samplingFreq":
-                self._params[key] = value
-                assert(isinstance(value, int))
-                assert(value > 0)
-            elif key == "SDR_centerFreq":
-                self._params[key] = value
-                assert(isinstance(value, int))
-                assert(value > 0)
-            elif key == "SDR_gain":
-                self._params[key] = value
-            elif key == 'SYS_network':
-                self._params[key] = str(value)
-            elif key == 'SYS_wifiMonitorInterval':
-                self._params[key] = int(value)
-
-
-
-    def writeOptions(self):
-        backups = glob.glob("/usr/local/etc/*.bak")
-        if len(backups) > 0:
-            backup_numbers = [os.path.basename(path).split('.')[0].lstrip('/usr/local/etc/rct_config') for path in backups]
-            backup_numbers = [int(number) for number in backup_numbers if number != '']
-            nextNumber = max(backup_numbers) + 1
-        else:
-            nextNumber = 1
-
-        os.rename('/usr/local/etc/rct_config', '/usr/local/etc/rct_config%d.bak' % nextNumber)
-
-        with open(self._configFile, 'w') as var_file:
-            yaml.dump(self._params, var_file)
-
-    def getAllOptions(self):
-        return self._params
-
-    def getCommsOptions(self):
-        return self._params
 
 
 class CommandListener:
@@ -218,7 +54,7 @@ class CommandListener:
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()
 
-        self.options = RCTOpts(config_path=config_path)
+        self.options = RCTOpts.get_instance(config_path=config_path)
 
         self.setup()
 

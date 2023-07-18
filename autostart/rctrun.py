@@ -1,6 +1,4 @@
 import argparse
-import datetime
-import json
 import logging
 import logging.handlers
 import os
@@ -10,16 +8,14 @@ import time
 from enum import Enum, auto
 from pathlib import Path
 from threading import Condition, Event
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
-import serial
-import yaml
-from RCTComms.comms import EVENTS, mavComms, rctBinaryPacketFactory
+from RCTComms.comms import EVENTS
 from RCTComms.transport import RCTTransportFactory
 
 from autostart.networking import NetworkMonitor
-from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
-                              SDR_INIT_STATES)
+from autostart.options import RCTOpts
+from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
 from RCTDSP2 import PingFinder
@@ -48,6 +44,8 @@ class RCTRun:
             test = False, *,
             config_path: Path = Path('/usr/local/etc/rct_config'),
             allow_nonmount: bool = False):
+        self.__options = RCTOpts.get_instance(config_path)
+        
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.DEBUG)
         self.__config_path = config_path
@@ -84,10 +82,10 @@ class RCTRun:
 
         self.__log.debug("Started Payload")
 
-        baud = int(self.get_var('GPS_baud'))
-        serialPort = self.get_var('GPS_device')
-        testGPS = self.get_var('GPS_mode')
-        self.gcs_spec = self.get_var('GCS_spec')
+        baud = int(self.__options.get_option('GPS_baud'))
+        serialPort = self.__options.get_option('GPS_device')
+        testGPS = self.__options.get_option('GPS_mode')
+        self.gcs_spec = self.__options.get_option('GCS_spec')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         self.__log.debug("RCTRun init: created UIB")
         self.cmdListener = None
@@ -113,8 +111,8 @@ class RCTRun:
                                                 name='GPS Init')
         try:
             self.network_monitor = NetworkMonitor(
-                network_profile=self.get_var('SYS_network'),
-                monitor_interval=int(self.get_var('SYS_wifiMonitorInterval'))
+                network_profile=self.__options.get_option('SYS_network'),
+                monitor_interval=int(self.__options.get_option('SYS_wifiMonitorInterval'))
             )
         except KeyError:
             self.network_monitor = None
@@ -186,7 +184,7 @@ class RCTRun:
 
 
     def uib_heartbeat(self):
-        heartbeat_period = self.get_var('SYS_heartbeat_period')
+        heartbeat_period = self.__options.get_option('SYS_heartbeat_period')
         self.__log.info('Sending heartbeats every %d seconds', heartbeat_period)
         while not self.heatbeat_thread_stop.is_set():
             if self.heatbeat_thread_stop.wait(timeout=heartbeat_period):
@@ -359,7 +357,7 @@ class RCTRun:
 
             while not outputDirInitialized:
                 if not dirNameFound:
-                    output_dir = self.get_var('SYS_outputDir')
+                    output_dir = self.__options.get_option('SYS_outputDir')
                     if output_dir is not None:
                         self.__output_path = Path(output_dir)
                         dirNameFound = True
@@ -401,19 +399,6 @@ class RCTRun:
             raise exc
         self.flags[self.Flags.STORAGE_READY].set()
 
-
-    def get_var(self, var: str) -> Any:
-        """Retrieves a parameter from config
-
-        Args:
-            var (str): Parameter key
-
-        Returns:
-            Any: Key value
-        """
-        with open(self.__config_path, 'r', encoding='ascii') as handle:
-            config = yaml.safe_load(handle)
-        return config[var]
 
 def main():
     parser = argparse.ArgumentParser()

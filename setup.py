@@ -149,6 +149,7 @@ setup(
         'pyyaml',
         'nmcli',
         'schema',
+        'Deprecated',
     ],
     entry_points={
         'console_scripts':[

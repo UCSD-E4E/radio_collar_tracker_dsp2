@@ -44,12 +44,16 @@ class UIBoard:
 
         self.run = True
         self.gps_ready = threading.Event()
-        self.listener = threading.Thread(target=self.uib_listener, name='UIB Listener')
+        self.listener = threading.Thread(target=self.uib_listener,
+                                         name='UIB Listener',
+                                         daemon=True)
         self.listener.start()
         self.recentLoc = None
         self.__last_timestamp: Optional[datetime.datetime] = None
 
-        self.__monitor = threading.Thread(target=self.__monitor_fn, name='UIB Monitor')
+        self.__monitor = threading.Thread(target=self.__monitor_fn,
+                                          name='UIB Monitor',
+                                          daemon=True)
         self.__monitor.start()
 
     @property

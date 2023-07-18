@@ -148,6 +148,7 @@ setup(
         'RCTComms >= 0.0.0.11',
         'pyyaml',
         'nmcli',
+        'schema',
     ],
     entry_points={
         'console_scripts':[

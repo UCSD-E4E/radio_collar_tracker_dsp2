@@ -80,14 +80,16 @@ class RCTRun:
         root_logger.addHandler(console_handler)
         logging.Formatter.converter = time.gmtime
 
-        logging.debug("Started Payload")
+        self.__log = logging.getLogger('RCTRun')
+
+        self.__log.debug("Started Payload")
 
         baud = int(self.get_var('GPS_baud'))
         serialPort = self.get_var('GPS_device')
         testGPS = self.get_var('GPS_mode')
         self.gcs_spec = self.get_var('GCS_spec')
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
-        logging.debug("RCTRun init: created UIB")
+        self.__log.debug("RCTRun init: created UIB")
         self.cmdListener = None
         self.test = test
 
@@ -96,7 +98,19 @@ class RCTRun:
         self.delete_comms_thread = None
 
         self.heatbeat_thread_stop = threading.Event()
-        self.heartbeat_thread: Optional[threading.Thread] = None
+
+        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat,
+                                                 name='UIB Heartbeat',
+                                                 daemon=True)
+        self.init_sdr_thread = threading.Thread(target=self.initSDR,
+                                                kwargs={'test':self.test},
+                                                name='SDR Init')
+        self.init_output_thread = threading.Thread(target=self.initOutput,
+                                                   kwargs={'test':self.test},
+                                                   name='Output Init')
+        self.init_gps_thread = threading.Thread(target=self.initGPS,
+                                                kwargs={'test':self.test},
+                                                name='GPS Init')
         try:
             self.network_monitor = NetworkMonitor(
                 network_profile=self.get_var('SYS_network'),
@@ -139,7 +153,6 @@ class RCTRun:
         """
         self.init_comms()
         self.init_threads()
-        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat, name='UIB Heartbeat')
         self.heartbeat_thread.start()
         if self.network_monitor:
             self.network_monitor.start()
@@ -155,18 +168,12 @@ class RCTRun:
         """System Initialization thread execution
         """
         self.flags[self.Flags.INIT_COMPLETE].clear()
-        self.init_sdr_thread = threading.Thread(target=self.initSDR,
-            kwargs={'test':self.test}, name='SDR Init')
-        self.init_output_thread = threading.Thread(target=self.initOutput,
-            kwargs={'test':self.test}, name='Output Init')
-        self.init_gps_thread = threading.Thread(target=self.initGPS,
-            kwargs={'test':self.test}, name='GPS Init')
         self.init_sdr_thread.start()
-        logging.debug("RCTRun init: started SDR thread")
+        self.__log.debug("RCTRun init: started SDR thread")
         self.init_output_thread.start()
-        logging.debug("RCTRun init: started output thread")
+        self.__log.debug("RCTRun init: started output thread")
         self.init_gps_thread.start()
-        logging.debug("RCTRun init: started GPS thread")
+        self.__log.debug("RCTRun init: started GPS thread")
 
         self.doRun = True
 
@@ -180,6 +187,7 @@ class RCTRun:
 
     def uib_heartbeat(self):
         heartbeat_period = self.get_var('SYS_heartbeat_period')
+        self.__log.info('Sending heartbeats every %d seconds', heartbeat_period)
         while not self.heatbeat_thread_stop.is_set():
             if self.heatbeat_thread_stop.wait(timeout=heartbeat_period):
                 break
@@ -189,13 +197,13 @@ class RCTRun:
         """Sets up the connection configuration
         """
         if self.cmdListener is None:
-            logging.debug("CommandListener initialized")
+            self.__log.debug("CommandListener initialized")
             transport = RCTTransportFactory.create_transport(self.gcs_spec)
             self.cmdListener = CommandListener(
                 ui_board=self.UIB_Singleton,
                 transport=transport,
                 config_path=self.__config_path)
-            logging.warning("CommandListener connected")
+            self.__log.warning("CommandListener connected")
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_START, self.startReceived)
             self.cmdListener.port.registerCallback(EVENTS.COMMAND_STOP, self.stop_run_cb)
 
@@ -203,8 +211,7 @@ class RCTRun:
     def stop_run_cb(self, packet, addr): # pylint: disable=unused-argument
         """Callback for the stop recording command
         """
-        log = logging.getLogger('Stop Run Callback')
-        log.info("Stop Run Callback")
+        self.__log.info("Stop Run Callback")
         self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
         if self.ping_finder is not None:
             self.ping_finder.stop()
@@ -217,7 +224,6 @@ class RCTRun:
 
 
     def run(self):
-        log = logging.getLogger('run')
         self.execute_cb(self.Event.START_RUN)
         try:
             if self.cmdListener.startFlag:
@@ -227,8 +233,8 @@ class RCTRun:
                     run_dirs = list(self.__output_path.glob('RUN_*'))
                     if len(run_dirs) > 0:
                         run_num = int(sorted([run_dir.name for run_dir in run_dirs])[-1][4:]) + 1
-                        logging.debug("Run Num:")
-                        logging.debug(run_num)
+                        self.__log.debug("Run Num:")
+                        self.__log.debug(run_num)
                     else:
                         run_num = 1
                 run_dir = self.__output_path.joinpath(f'RUN_{run_num:06d}')
@@ -250,37 +256,37 @@ class RCTRun:
 
                 if True:
                     self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
-                    logging.debug("Enterring start pingFinder")
+                    self.__log.debug("Enterring start pingFinder")
                     self.ping_finder = PingFinder()
-                    logging.debug("Enterring start pingFinder1")
+                    self.__log.debug("Enterring start pingFinder1")
                     self.ping_finder.gain = self.cmdListener.options.getOption("SDR_gain")
-                    logging.debug("Enterring start pingFinder2")
+                    self.__log.debug("Enterring start pingFinder2")
                     self.ping_finder.sampling_rate = self.cmdListener.options.getOption("SDR_samplingFreq")
-                    logging.debug("Enterring start pingFinder3")
+                    self.__log.debug("Enterring start pingFinder3")
                     self.ping_finder.center_frequency = self.cmdListener.options.getOption("SDR_centerFreq")
-                    logging.debug("Enterring start pingFinder4")
+                    self.__log.debug("Enterring start pingFinder4")
                     self.ping_finder.run_num = run_num
-                    logging.debug("Enterring start pingFinder5")
+                    self.__log.debug("Enterring start pingFinder5")
                     self.ping_finder.enable_test_data = False
-                    logging.debug("Enterring start pingFinder6")
+                    self.__log.debug("Enterring start pingFinder6")
                     self.ping_finder.output_dir = run_dir.as_posix()
-                    logging.debug("Enterring start pingFinder7")
+                    self.__log.debug("Enterring start pingFinder7")
                     self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
-                    logging.debug("Enterring start pingFinder8")
+                    self.__log.debug("Enterring start pingFinder8")
                     self.ping_finder.ping_min_snr = self.cmdListener.options.getOption("DSP_pingSNR")
-                    logging.debug("Enterring start pingFinder9")
+                    self.__log.debug("Enterring start pingFinder9")
                     self.ping_finder.ping_max_len_mult = self.cmdListener.options.getOption("DSP_pingMax")
-                    logging.debug("Enterring start pingFinder10")
+                    self.__log.debug("Enterring start pingFinder10")
                     self.ping_finder.ping_min_len_mult = self.cmdListener.options.getOption("DSP_pingMin")
-                    logging.debug("Enterring start pingFinder11")
+                    self.__log.debug("Enterring start pingFinder11")
                     self.ping_finder.target_frequencies = self.cmdListener.options.getOption("TGT_frequencies")
 
                     self.ping_finder.register_callback(self.UIB_Singleton.send_ping)
 
                     self.ping_finder.start()
-                    logging.debug("Started pingFinder")
+                    self.__log.debug("Started pingFinder")
         except Exception as exc:
-            log.exception(exc)
+            self.__log.exception(exc)
             raise exc
 
     def initGPS(self, test = False):

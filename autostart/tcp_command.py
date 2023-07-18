@@ -54,7 +54,7 @@ class CommandListener:
         self.UIBoard.switch = 0
         self.factory = rctBinaryPacketFactory()
 
-        self.options = RCTOpts.get_instance(config_path=config_path)
+        self.options = RCTOpts.get_instance(path=config_path)
 
         self.setup()
 

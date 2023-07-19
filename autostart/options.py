@@ -196,7 +196,7 @@ class RCTOpts:
 
     @deprecated
     def getCommsOptions(self):
-        return self.get_comms_options
+        return self.get_comms_options()
 
     @deprecated
     def get_comms_options(self):

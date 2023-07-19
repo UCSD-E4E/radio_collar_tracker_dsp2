@@ -3,7 +3,7 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import serial
 from RCTComms.comms import EVENTS, rctPingPacket, rctVehiclePacket
@@ -192,70 +192,75 @@ class UIBoard:
         self.__log.info('GPS Ready')
         self.gps_ready.set()
 
+    def parse_uib_message(self, msg: str) -> \
+            Tuple[float, float, float, datetime.datetime]:
+        """Parses the UIB position message
+
+        Raises:
+            exc: json.JSONDecodeError if the message is malformed
+
+        Returns:
+            Tuple[float, float, float, datetime.datetime]: Lat, Lon, Heading,
+            and timestamp
+        """
+        try:
+            reading = json.loads(msg)
+        except json.JSONDecodeError as exc:
+            self.__log.exception('Malformed UIB Location message')
+            raise exc
+        lat = reading["lat"] / 1e7
+        lon = reading["lon"] / 1e7
+        hdg = reading["hdg"]
+        tme = reading["tme"]
+        dat = reading["dat"]
+
+        year_string = "20" + dat[4:6]
+        day = datetime.date(year=int(year_string),
+                            month=int(dat[2:4]),
+                            day=int(dat[0:2]))
+        tim = datetime.time(hour=int(tme[0:2]),
+                            minute=int(tme[2:4]),
+                            second=int(tme[4:6]))
+        date = datetime.datetime.combine(day, tim)
+        return (lat, lon, hdg, date)
+
     def uib_listener(self):
         '''
         Continuously listens to uib serial port for Sensor Packets
         '''
         self.__init_gps()
-        if self.test_mode:
-            lon = -117.23679
-            lat = 32.88534
-            while self.run:
+
+        lon = -117.23679
+        lat = 32.88534
+        while self.run:
+            if self.test_mode:
                 time.sleep(1)
+                lon += 1e-4
+                lat += 1e-4
+                hdg = 0
+                date = datetime.datetime.now()
+            else:
                 try:
-                    lon += 1e-4
-                    lat += 1e-4
-                    hdg = 0
-                    date = datetime.datetime.now()
-                    packet = rctVehiclePacket(lat, lon, 0, hdg, date)
-                    self.__log.info("location: %.6f, %.6f",
-                                    packet.lat,
-                                    packet.lon)
-                    self.handle_sensor_packet(packet)
-                    self.recentLoc = [lat, lon, 0]
-                    self.__last_timestamp = date
-                except Exception as e:
-                    print(str(e))
-        else:
-            self.__port.timeout = 1
-            while self.run:
-                try:
-                    ret = self.__port.readline().decode("utf-8")
-                except serial.SerialException as exc:
-                    self.__log.exception(exc)
+                    ret = self.__port.readline().decode('ascii')
+                except serial.SerialException:
+                    self.__log.exception('Failed to read from serial')
                     continue
-                if ret is not None and ret != "":
-                    try:
-                        reading = json.loads(ret)
-                    except json.JSONDecodeError:
-                        self.__log.exception("Malformed UIB Location message")
-                        continue
-                    try:
-                        lat = reading["lat"] / 1e7
-                        lon = reading["lon"] / 1e7
-                        hdg = reading["hdg"]
-                        tme = reading["tme"]
-                        dat = reading["dat"]
+                if ret is None or ret == '':
+                    continue
+                try:
+                    lat, lon, hdg, date = self.parse_uib_message(ret)
+                except json.JSONDecodeError:
+                    continue
 
-                        year_string = "20" + dat[4:6]
-                        day = datetime.date(int(year_string), int(dat[2:4]), int(dat[0:2]))
-                        tim = datetime.time(int(tme[0:2]), int(tme[2:4]), int(tme[4:6]))
-                        date = datetime.datetime.combine(day, tim)
+            packet = rctVehiclePacket(lat=lat,
+                                      lon=lon,
+                                      alt=0,
+                                      hdg=hdg,
+                                      timestamp=date)
+            self.recentLoc = [lat, lon, 0]
 
-                        packet = rctVehiclePacket(
-                            lat=lat,
-                            lon=lon,
-                            alt=0,
-                            hdg=hdg,
-                            timestamp=date)
-
-                        self.recentLoc = [lat, lon, 0]
-
-                        self.handle_sensor_packet(packet)
-                        self.__last_timestamp = date
-
-                    except Exception: # pylint: disable=broad-except
-                        self.__log.exception('Failed to process sensor packet')
+            self.handle_sensor_packet(packet)
+            self.__last_timestamp = date
 
     def send_ping(self, now, amplitude, frequency):
         if self.recentLoc is not None:

@@ -130,3 +130,9 @@ Requirements:
     2.  `sudo chmod 644 /lib/systemd/system/rctrun.service`
     3.  `sudo systemctl daemon-reload`
     4.  `sudo systemctl enable rctrun.service`
+
+# Developer Notes
+## Threading
+All threads should use `autostart.utils.InstrumentedThread`, which is a wrapper
+of `threading.Thread`.  This wrapper provides support for capturing exceptions
+raised from the thread into the log, which is critical for headless systems.

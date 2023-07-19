@@ -13,6 +13,8 @@ from typing import Callable, Dict, List, Optional
 
 import nmcli
 
+from autostart.utils import InstrumentedThread
+
 
 class NetworkMonitor:
     """Class that monitors the current network status
@@ -50,7 +52,7 @@ class NetworkMonitor:
         if network_profile not in self.__profile_map():
             raise RuntimeError('Network profile not found')
 
-        self.__thread: Optional[threading.Thread] = None
+        self.__thread: Optional[InstrumentedThread] = None
 
     def __profile_map(self) -> Dict[str, nmcli.data.connection.Connection]:
         return {c.name for c in nmcli.connection()}
@@ -93,7 +95,8 @@ class NetworkMonitor:
         if self.__thread is not None:
             return
         self.__flags[self.Flag.STOP_MONITOR].clear()
-        self.__thread = threading.Thread(target=self.monitor, name='NetworkMonitor')
+        self.__thread = InstrumentedThread(target=self.monitor,
+                                           name='NetworkMonitor')
         self.__thread.start()
 
     def stop(self):

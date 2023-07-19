@@ -10,6 +10,7 @@ from RCTComms.comms import EVENTS, rctPingPacket, rctVehiclePacket
 
 from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
                               SDR_INIT_STATES)
+from autostart.utils import InstrumentedThread
 
 
 class UIBoard:
@@ -44,14 +45,14 @@ class UIBoard:
 
         self.run = True
         self.gps_ready = threading.Event()
-        self.listener = threading.Thread(target=self.uib_listener,
+        self.listener = InstrumentedThread(target=self.uib_listener,
                                          name='UIB Listener',
                                          daemon=True)
         self.listener.start()
         self.recentLoc = None
         self.__last_timestamp: Optional[datetime.datetime] = None
 
-        self.__monitor = threading.Thread(target=self.__monitor_fn,
+        self.__monitor = InstrumentedThread(target=self.__monitor_fn,
                                           name='UIB Monitor',
                                           daemon=True)
         self.__monitor.start()

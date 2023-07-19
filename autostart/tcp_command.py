@@ -6,7 +6,6 @@ import os
 import socket
 import subprocess
 import sys
-import threading
 import time
 from enum import IntEnum
 from pathlib import Path
@@ -22,6 +21,7 @@ from RCTComms.transport import RCTAbstractTransport
 
 from autostart.options import RCTOpts
 from autostart.UIB_instance import UIBoard
+from autostart.utils import InstrumentedThread
 
 
 class COMMS_STATES(IntEnum):
@@ -46,8 +46,11 @@ class CommandListener:
         self._run = True
 
         self.state = COMMS_STATES.disconnected
-        self.sender = threading.Thread(target=self._sender, name='CommandListener_sender', daemon=True)
-        self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_reconnect')
+        self.sender = InstrumentedThread(target=self._sender,
+                                         name='CommandListener_sender',
+                                         daemon=True)
+        self.reconnect = InstrumentedThread(target=self._reconnectComms,
+                                            name='CommandListener_reconnect')
 
         self.startFlag = False
         self.UIBoard = ui_board
@@ -132,8 +135,11 @@ class CommandListener:
 
     def _reconnectComms(self):
         self.sender.join()
-        self.sender = threading.Thread(target=self._sender, name='CommandListener_sender', daemon=True)
-        self.reconnect = threading.Thread(target=self._reconnectComms, name='CommandListener_sender')
+        self.sender = InstrumentedThread(target=self._sender,
+                                         name='CommandListener_sender',
+                                         daemon=True)
+        self.reconnect = InstrumentedThread(target=self._reconnectComms,
+                                            name='CommandListener_sender')
 
         self.port.start()
         while not self.transport.isOpen():

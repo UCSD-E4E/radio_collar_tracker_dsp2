@@ -18,6 +18,7 @@ from autostart.options import RCTOpts
 from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
+from autostart.utils import InstrumentedThread
 from RCTDSP2 import PingFinder
 
 WAIT_COUNT = 60
@@ -46,8 +47,6 @@ class RCTRun:
             allow_nonmount: bool = False):
         self.__options = RCTOpts.get_instance(config_path)
         
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.DEBUG)
         self.__config_path = config_path
         self.__allow_nonmount = allow_nonmount
 
@@ -58,25 +57,6 @@ class RCTRun:
         self.flags = {evt: Event() for evt in RCTRun.Flags}
 
         self.__output_path: Optional[Path] = None
-
-        if os.getuid() == 0:
-            log_dest = Path('/var/log/rct.log')
-        else:
-            log_dest = Path('/tmp/rct.log')
-        log_file_handler = logging.handlers.RotatingFileHandler(log_dest, maxBytes=5*1024*1024, backupCount=5)
-        log_file_handler.setLevel(logging.DEBUG)
-
-        root_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-        log_file_handler.setFormatter(root_formatter)
-        root_logger.addHandler(log_file_handler)
-
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.WARN)
-
-        error_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-        console_handler.setFormatter(error_formatter)
-        root_logger.addHandler(console_handler)
-        logging.Formatter.converter = time.gmtime
 
         self.__log = logging.getLogger('RCTRun')
 
@@ -97,16 +77,16 @@ class RCTRun:
 
         self.heatbeat_thread_stop = threading.Event()
 
-        self.heartbeat_thread = threading.Thread(target=self.uib_heartbeat,
+        self.heartbeat_thread = InstrumentedThread(target=self.uib_heartbeat,
                                                  name='UIB Heartbeat',
                                                  daemon=True)
-        self.init_sdr_thread = threading.Thread(target=self.initSDR,
+        self.init_sdr_thread = InstrumentedThread(target=self.initSDR,
                                                 kwargs={'test':self.test},
                                                 name='SDR Init')
-        self.init_output_thread = threading.Thread(target=self.initOutput,
+        self.init_output_thread = InstrumentedThread(target=self.initOutput,
                                                    kwargs={'test':self.test},
                                                    name='Output Init')
-        self.init_gps_thread = threading.Thread(target=self.initGPS,
+        self.init_gps_thread = InstrumentedThread(target=self.initGPS,
                                                 kwargs={'test':self.test},
                                                 name='GPS Init')
         try:
@@ -399,8 +379,32 @@ class RCTRun:
             raise exc
         self.flags[self.Flags.STORAGE_READY].set()
 
+def configure_loggers():
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    if os.getuid() == 0:
+        log_dest = Path('/var/log/rct.log')
+    else:
+        log_dest = Path('/tmp/rct.log')
+    log_file_handler = logging.handlers.RotatingFileHandler(log_dest,
+                                                            maxBytes=5*1024*1024,
+                                                            backupCount=5)
+    log_file_handler.setLevel(logging.DEBUG)
+
+    root_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    log_file_handler.setFormatter(root_formatter)
+    root_logger.addHandler(log_file_handler)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARN)
+
+    error_formatter = logging.Formatter('%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    console_handler.setFormatter(error_formatter)
+    root_logger.addHandler(console_handler)
+    logging.Formatter.converter = time.gmtime
 
 def main():
+    configure_loggers()
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=Path)
     parser.add_argument('--no_mount', action='store_true')
@@ -411,8 +415,12 @@ def main():
     if args.config:
         kwargs['config_path'] = args.config
     kwargs['allow_nonmount'] = args.no_mount
-    app = RCTRun(**kwargs)
-    app.start()
+    try:
+        app = RCTRun(**kwargs)
+        app.start()
+    except Exception as exc:
+        logging.exception('Unhandled fatal exception!')
+        raise exc
     while True:
         pass
 

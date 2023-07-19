@@ -3,16 +3,13 @@
 import socket
 import time
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
 from time import sleep
 from typing import Tuple
 from unittest.mock import Mock
 
 import pytest
-import yaml
-from RCTComms.comms import EVENTS, gcsComms, rctSTARTCommand, rctSTOPCommand
+from RCTComms.comms import gcsComms, rctSTARTCommand, rctSTOPCommand
 from RCTComms.transport import RCTTCPClient
-from test_uib import FakeUIBoard
 
 from autostart.rctrun import RCT_STATES, RCTRun
 
@@ -30,40 +27,6 @@ def get_next_free_port() -> int:
     sock.close()
     return port
 
-@pytest.fixture(name='test_env')
-def create_test_env() -> Tuple[Path]:
-    """Creates a test environment
-
-    Returns:
-        Tuple[Path]: Path object of test config
-
-    Yields:
-        Iterator[Tuple[Path]]: _description_
-    """
-    ui_board = FakeUIBoard()
-    ui_board.start()
-    with TemporaryDirectory() as tmp_output_dir:
-        config = {
-            'DSP_pingMax': 1.5,
-            'DSP_pingMin': 0.5,
-            'DSP_pingSNR': 0.1,
-            'DSP_pingWidth': 27,
-            'GPS_baud': 9600,
-            'GPS_device': ui_board.serial_pty,
-            'GPS_mode': True,
-            'SDR_centerFreq': 173500000,
-            'SDR_gain': 20.0,
-            'SDR_samplingFreq': 1500000,
-            'SYS_autostart': False,
-            'SYS_outputDir': tmp_output_dir,
-            'TGT_frequencies': [173964000],
-            'GCS_spec': 'serial:/dev/ttyUSB0?baud=57600',
-            'SYS_heartbeat_period': 5,
-        }
-        with NamedTemporaryFile(mode="w+") as handle:
-            yaml.safe_dump(config, handle)
-            yield (Path(handle.name),)
-    ui_board.stop()
 
 @pytest.mark.timeout(10)
 def test_initialization(test_env: Tuple[Path], test_port: int):
@@ -73,7 +36,6 @@ def test_initialization(test_env: Tuple[Path], test_port: int):
         test_env (Tuple[Path]): Test Environment
     """
     app = RCTRun(
-        tcpport=test_port,
         config_path=test_env[0],
         allow_nonmount=True
     )
@@ -90,7 +52,6 @@ def test_connect(test_env: Tuple[Path], test_port: int):
     """
     port = test_port
     app = RCTRun(
-        tcpport=port,
         config_path=test_env[0],
         allow_nonmount=True
     )
@@ -118,7 +79,6 @@ def create_running_system(test_env: Tuple[Path], test_port: int) -> Tuple[RCTRun
         Iterator[Tuple[RCTRun, gcsComms]]: MAV and GCS pair
     """
     app = RCTRun(
-        tcpport=test_port,
         config_path=test_env[0],
         allow_nonmount=True
     )

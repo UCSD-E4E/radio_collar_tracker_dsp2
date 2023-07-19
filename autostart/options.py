@@ -37,15 +37,16 @@ class RCTOpts:
         'SDR_centerFreq': ParamEntry([int], lambda x: x > 0),
         'SDR_gain': ParamEntry([int, float]),
         'SYS_network': ParamEntry([str], None, str),
-        'SYS_wifiMonitorInterval': ParamEntry([int], None, int)
+        'SYS_wifiMonitorInterval': ParamEntry([int], None, int),
+        'SYS_heartbeat_period': ParamEntry([int], lambda x: x > 0),
     }
 
     def __init__(self, *,
                  config_path: Path = Path('/usr/local/etc/rct_config')):
         self._config_file = config_path
-        self.options = list(self.param_fn_table.keys)
-        self.loadParams()
+        self.options = list(self.param_fn_table.keys())
         self._params: Dict[str, Any] = {}
+        self.loadParams()
 
     @deprecated
     def get_var(self, var: str) -> Any:

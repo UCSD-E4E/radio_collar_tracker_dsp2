@@ -99,10 +99,11 @@ class CommandListener:
 
         self.port.port_open_event.wait()
 
+        heartbeat_period = self.options.get_var('SYS_heartbeat_period')
         while (self.port.isOpen()):
             try:
                 now = datetime.datetime.now()
-                if (now - prevTime).total_seconds() > 1:
+                if (now - prevTime).total_seconds() > heartbeat_period:
                     heartbeatPacket = rctHeartBeatPacket(self.UIBoard.system_state, 
                             self.UIBoard.sdr_state, self.UIBoard.sensor_state, 
                             self.UIBoard.storage_state, self.UIBoard.switch, now)

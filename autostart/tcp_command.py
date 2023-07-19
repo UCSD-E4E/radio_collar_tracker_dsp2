@@ -17,6 +17,7 @@ from RCTComms.comms import (EVENTS, mavComms, rctACKCommand,
                             rctSETFCommand, rctSETOPTCommand, rctSTARTCommand,
                             rctSTOPCommand, rctUPGRADECommand,
                             rctUpgradeStatusPacket)
+from RCTComms.options import Options
 from RCTComms.transport import RCTAbstractTransport
 
 from autostart.options import RCTOpts
@@ -102,7 +103,7 @@ class CommandListener:
 
         self.port.port_open_event.wait()
 
-        heartbeat_period = self.options.get_var('SYS_heartbeat_period')
+        heartbeat_period = self.options.get_option(Options.SYS_HEARTBEAT_PERIOD)
         while (self.port.isOpen()):
             try:
                 now = datetime.datetime.now()
@@ -184,7 +185,7 @@ class CommandListener:
         if packet.frequencies is None:
             return
         freqs = packet.frequencies
-        self.options.setOption('TGT_frequencies', freqs)
+        self.options.set_option(Options.TGT_FREQUENCIES, freqs)
         self.options.writeOptions()
         packet = rctFrequenciesPacket(freqs)
 
@@ -193,7 +194,7 @@ class CommandListener:
         self.port.sendToGCS(msg)
 
     def _gotGetFCmd(self, packet: rctGETFCommand, addr):
-        freqs = self.options.getOption('TGT_frequencies')
+        freqs = self.options.get_option(Options.TGT_FREQUENCIES)
         packet = rctFrequenciesPacket(freqs)
         msg = packet
         self._sendAck(0x02, True)
@@ -204,7 +205,7 @@ class CommandListener:
 
         print("Get Comms Opts: ", opts)
 
-        msg = rctOptionsPacket(packet.scope, **opts)
+        msg = rctOptionsPacket(packet.scope, opts)
         self._sendAck(0x04, True)
         self.port.sendToGCS(msg)
 
@@ -223,7 +224,7 @@ class CommandListener:
 
     def _gotSetOptsCmd(self, packet: rctSETOPTCommand, addr):
         opts = packet.options
-        self.options.setOptions(opts)
+        self.options.set_options(opts)
         self.options.writeOptions()
         options = self.options.getCommsOptions()
         msg = rctOptionsPacket(packet.scope, **options)

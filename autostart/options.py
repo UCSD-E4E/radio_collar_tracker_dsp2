@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Type
 
 import yaml
 from deprecated import deprecated
+from RCTComms.options import Options, validate_option
 
 
 @dataclass
@@ -23,47 +24,13 @@ class RCTOpts:
     """
 
     param_fn_table: Dict[str, ParamEntry] = {
-        'DSP_pingWidth': ParamEntry([float], lambda x: x > 0),
-        'DSP_pingSNR': ParamEntry([float], lambda x: x > 0),
-        'DSP_pingMax': ParamEntry([float], lambda x: x > 1),
-        'DSP_pingMin': ParamEntry([float], lambda x: 0 < x < 1),
-        'GPS_mode': ParamEntry([str], lambda x: x in ['true', 'false']),
-        'GPS_device': ParamEntry([str]),
-        'GPS_baud': ParamEntry([int], lambda x: x > 0),
-        'TGT_frequencies': ParamEntry([list]),
-        'SYS_autostart': ParamEntry([str], lambda x: x in ['true', 'false']),
-        'SYS_outputDir': ParamEntry([str]),
-        'SDR_samplingFreq': ParamEntry([int], lambda x: x > 0),
-        'SDR_centerFreq': ParamEntry([int], lambda x: x > 0),
-        'SDR_gain': ParamEntry([int, float]),
-        'SYS_network': ParamEntry([str], None, str),
-        'SYS_wifiMonitorInterval': ParamEntry([int], None, int),
-        'SYS_heartbeat_period': ParamEntry([int], lambda x: x > 0),
     }
 
     def __init__(self, *,
                  config_path: Path = Path('/usr/local/etc/rct_config')):
         self._config_file = config_path
-        self.options = list(self.param_fn_table.keys())
-        self._params: Dict[str, Any] = {}
+        self._params: Dict[Options, Any] = {}
         self.loadParams()
-
-    @deprecated
-    def get_var(self, var: str) -> Any:
-        """Gets the specified variable
-
-        Args:
-            var (str): Variable key
-
-        Returns:
-            Any: Variable value
-        """
-        retval = []
-        with open(self._config_file, 'r', encoding='ascii') as var_file:
-            config = yaml.safe_load(var_file)
-            retval= config[var]
-        return retval
-
 
     @deprecated
     def loadParams(self) -> None:
@@ -73,15 +40,11 @@ class RCTOpts:
         """Loads the parameters from disk
         """
         with open(self._config_file, 'r', encoding='ascii') as var_file:
-            config = yaml.safe_load(var_file)
+            config: Dict[str, Any] = yaml.safe_load(var_file)
             for option in config:
-                self._params[option] = config[option]
+                self._params[Options(option)] = config[option]
 
-    @deprecated
-    def getOption(self, option: str):
-        return self.get_option(option=option)
-
-    def get_option(self, option: str) -> Any:
+    def get_option(self, option: Options) -> Any:
         """Retrieves the specified option
 
         Args:
@@ -93,68 +56,32 @@ class RCTOpts:
         return self._params[option]
 
 
-    @deprecated
-    def setOption(self, option, param):
-        return self.set_option(option=option, param=param)
-
-    def set_option(self, option: str, param: Any):
+    def set_option(self, option: Options, param: Any):
         """Sets the specified option value
 
         Args:
             option (str): Option key
             param (Any): New value
         """
-        value = self.validate_option(option, param)
+        value = validate_option(option, param)
 
         self._params[option] = value
 
-    @deprecated
-    def setOptions(self, options: dict):
-        self.set_options(options=options)
 
-
-
-    def set_options(self, options: Dict[str, Any]):
+    def set_options(self, options: Dict[Options, Any]):
         """Updates the current options from the specified dictionary
 
         Args:
-            options (Dict[str, Any]): Options to update
+            options (Dict[Options, Any]): Options to update
         """
         for key, value in options.items():
-            print('Option: ')
-            print(key)
-            print(value)
 
-            value = self.validate_option(key, value)
+            value = validate_option(key, value)
 
             # update
             self._params[key] = value
 
-    def validate_option(self, key: str, value: Any) -> Any:
-        """Validates the option value
 
-        Args:
-            key (str): Option key
-            value (Any): Value to be validated
-
-        Raises:
-            KeyError: Unknown key
-
-        Returns:
-            Any: Validated value
-        """
-        if key not in self.param_fn_table:
-            raise KeyError('Unknown key')
-
-        param_entry = self.param_fn_table[key]
-        # validate first
-        if param_entry.validation_fn:
-            assert param_entry.validation_fn(value)
-
-        # Transform
-        if param_entry.transform_fn:
-            value = param_entry.transform_fn(value)
-        return value
 
 
     @deprecated
@@ -180,7 +107,8 @@ class RCTOpts:
         self._config_file.rename(new_path)
 
         with open(self._config_file, 'w', encoding='ascii') as var_file:
-            yaml.dump(self._params, var_file)
+            data = {key.name:value for key, value in self._params.items()}
+            yaml.dump(data, var_file)
 
     @deprecated
     def getAllOptions(self):

@@ -14,7 +14,7 @@ from RCTComms.comms import EVENTS
 from RCTComms.transport import RCTTransportFactory
 
 from autostart.networking import NetworkMonitor
-from autostart.options import RCTOpts
+from autostart.options import RCTOpts, Options
 from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
@@ -62,10 +62,10 @@ class RCTRun:
 
         self.__log.debug("Started Payload")
 
-        baud = int(self.__options.get_option('GPS_baud'))
-        serialPort = self.__options.get_option('GPS_device')
-        testGPS = self.__options.get_option('GPS_mode')
-        self.gcs_spec = self.__options.get_option('GCS_spec')
+        baud = int(self.__options.get_option(Options.GPS_BAUD))
+        serialPort = self.__options.get_option(Options.GPS_DEVICE)
+        testGPS = self.__options.get_option(Options.GPS_MODE)
+        self.gcs_spec = self.__options.get_option(Options.GCS_SPEC)
         self.UIB_Singleton = UIBoard(serialPort, baud, testGPS)
         self.__log.debug("RCTRun init: created UIB")
         self.cmdListener = None
@@ -91,8 +91,8 @@ class RCTRun:
                                                 name='GPS Init')
         try:
             self.network_monitor = NetworkMonitor(
-                network_profile=self.__options.get_option('SYS_network'),
-                monitor_interval=int(self.__options.get_option('SYS_wifiMonitorInterval'))
+                network_profile=self.__options.get_option(Options.SYS_NETWORK),
+                monitor_interval=int(self.__options.get_option(Options.SYS_WIFI_MONITOR_INTERVAL))
             )
         except KeyError:
             self.network_monitor = None
@@ -164,7 +164,7 @@ class RCTRun:
 
 
     def uib_heartbeat(self):
-        heartbeat_period = self.__options.get_option('SYS_heartbeat_period')
+        heartbeat_period = self.__options.get_option(Options.SYS_HEARTBEAT_PERIOD)
         self.__log.info('Sending heartbeats every %d seconds', heartbeat_period)
         while not self.heatbeat_thread_stop.is_set():
             if self.heatbeat_thread_stop.wait(timeout=heartbeat_period):
@@ -337,7 +337,7 @@ class RCTRun:
 
             while not outputDirInitialized:
                 if not dirNameFound:
-                    output_dir = self.__options.get_option('SYS_outputDir')
+                    output_dir = self.__options.get_option(Options.SYS_OUTPUT_DIR)
                     if output_dir is not None:
                         self.__output_path = Path(output_dir)
                         dirNameFound = True

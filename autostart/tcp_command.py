@@ -200,9 +200,9 @@ class CommandListener:
         self.port.sendToGCS(msg)
 
     def _gotGetOptsCmd(self, packet: rctGETOPTCommand, addr):
-        opts = self.options.getCommsOptions()
+        opts = self.options.get_all_options()
 
-        print("Get Comms OPts: ", opts)
+        print("Get Comms Opts: ", opts)
 
         msg = rctOptionsPacket(packet.scope, **opts)
         self._sendAck(0x04, True)

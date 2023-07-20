@@ -71,7 +71,7 @@ class UIBoard:
         if not isinstance(state, int):
             raise RuntimeError("Illegal type")
         self._system_state = state
-        self.__log.warning("System state set to %s", RCT_STATES(state).name)
+        self.__log.info("System state set to %s", RCT_STATES(state).name)
 
     @property
     def sdr_state(self) -> int:

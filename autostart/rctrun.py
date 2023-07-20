@@ -156,8 +156,11 @@ class RCTRun:
         self.doRun = True
 
         self.init_sdr_thread.join()
+        self.__log.debug('SDR init thread joined')
         self.init_output_thread.join()
+        self.__log.debug('Output init thread joined')
         self.init_gps_thread.join()
+        self.__log.debug('GPS init thread joined')
         self.UIB_Singleton.system_state = RCT_STATES.wait_start.value
 
         self.flags[self.Flags.INIT_COMPLETE].set()

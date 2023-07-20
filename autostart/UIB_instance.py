@@ -251,6 +251,7 @@ class UIBoard:
                     lat, lon, hdg, date = self.parse_uib_message(ret)
                 except json.JSONDecodeError:
                     continue
+            self.gps_ready.set()
 
             packet = rctVehiclePacket(lat=lat,
                                       lon=lon,

@@ -238,16 +238,17 @@ class RCTRun:
 
                 #TODO add dynamic sdr_record
 
+                opts = self.cmdListener.options
                 if True:
                     self.UIB_Singleton.system_state = RCT_STATES.wait_end.value
                     self.__log.debug("Enterring start pingFinder")
                     self.ping_finder = PingFinder()
                     self.__log.debug("Enterring start pingFinder1")
-                    self.ping_finder.gain = self.cmdListener.options.getOption("SDR_gain")
+                    self.ping_finder.gain = opts.get_option(Options.SDR_GAIN)
                     self.__log.debug("Enterring start pingFinder2")
-                    self.ping_finder.sampling_rate = self.cmdListener.options.getOption("SDR_samplingFreq")
+                    self.ping_finder.sampling_rate = opts.get_option(Options.SDR_SAMPLING_FREQ)
                     self.__log.debug("Enterring start pingFinder3")
-                    self.ping_finder.center_frequency = self.cmdListener.options.getOption("SDR_centerFreq")
+                    self.ping_finder.center_frequency = opts.get_option(Options.SDR_CENTER_FREQ)
                     self.__log.debug("Enterring start pingFinder4")
                     self.ping_finder.run_num = run_num
                     self.__log.debug("Enterring start pingFinder5")
@@ -255,15 +256,15 @@ class RCTRun:
                     self.__log.debug("Enterring start pingFinder6")
                     self.ping_finder.output_dir = run_dir.as_posix()
                     self.__log.debug("Enterring start pingFinder7")
-                    self.ping_finder.ping_width_ms = self.cmdListener.options.getOption("DSP_pingWidth")
+                    self.ping_finder.ping_width_ms = opts.get_option(Options.DSP_PING_WIDTH)
                     self.__log.debug("Enterring start pingFinder8")
-                    self.ping_finder.ping_min_snr = self.cmdListener.options.getOption("DSP_pingSNR")
+                    self.ping_finder.ping_min_snr = opts.get_option(Options.DSP_PING_SNR)
                     self.__log.debug("Enterring start pingFinder9")
-                    self.ping_finder.ping_max_len_mult = self.cmdListener.options.getOption("DSP_pingMax")
+                    self.ping_finder.ping_max_len_mult = opts.get_option(Options.DSP_PING_MAX)
                     self.__log.debug("Enterring start pingFinder10")
-                    self.ping_finder.ping_min_len_mult = self.cmdListener.options.getOption("DSP_pingMin")
+                    self.ping_finder.ping_min_len_mult = opts.get_option(Options.DSP_PING_MIN)
                     self.__log.debug("Enterring start pingFinder11")
-                    self.ping_finder.target_frequencies = self.cmdListener.options.getOption("TGT_frequencies")
+                    self.ping_finder.target_frequencies = opts.get_option(Options.TGT_FREQUENCIES)
 
                     self.ping_finder.register_callback(self.UIB_Singleton.send_ping)
 

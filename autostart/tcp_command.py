@@ -226,8 +226,8 @@ class CommandListener:
         opts = packet.options
         self.options.set_options(opts)
         self.options.writeOptions()
-        options = self.options.getCommsOptions()
-        msg = rctOptionsPacket(packet.scope, **options)
+        options = self.options.get_all_options()
+        msg = rctOptionsPacket(packet.scope, options)
         self._sendAck(0x05, True)
         self.port.sendToGCS(msg)
         self._sendAck(0x05, True)

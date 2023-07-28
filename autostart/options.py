@@ -2,6 +2,7 @@
 '''
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
@@ -31,6 +32,7 @@ class RCTOpts:
         self._config_file = config_path
         self._params: Dict[Options, Any] = {}
         self.loadParams()
+        self.__log = logging.getLogger('Opts')
 
     @deprecated
     def loadParams(self) -> None:
@@ -43,6 +45,7 @@ class RCTOpts:
             config: Dict[str, Any] = yaml.safe_load(var_file)
             for option in config:
                 self._params[Options(option)] = config[option]
+                self.__log.info('Discovered %s as %s', option, str(config[option]))
 
     def get_option(self, option: Options) -> Any:
         """Retrieves the specified option
@@ -114,7 +117,7 @@ class RCTOpts:
     def getAllOptions(self):
         return self.get_all_options()
 
-    def get_all_options(self) -> Dict[str, Any]:
+    def get_all_options(self) -> Dict[Options, Any]:
         """Retrieves all options
 
         Returns:

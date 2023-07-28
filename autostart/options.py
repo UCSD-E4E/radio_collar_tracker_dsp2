@@ -94,7 +94,7 @@ class RCTOpts:
     def write_options(self):
         """Writes the current options to disk
         """
-        backups = self._config_file.parent.glob('*.bak')
+        backups = list(self._config_file.parent.glob('*.bak'))
         if len(backups) > 0:
             backup_numbers = [path.stem.lstrip('rct_config')
                               for path in backups]

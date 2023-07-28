@@ -110,7 +110,7 @@ class RCTOpts:
         self._config_file.rename(new_path)
 
         with open(self._config_file, 'w', encoding='ascii') as var_file:
-            data = {key.name:value for key, value in self._params.items()}
+            data = {key.value:value for key, value in self._params.items()}
             yaml.dump(data, var_file)
 
     @deprecated

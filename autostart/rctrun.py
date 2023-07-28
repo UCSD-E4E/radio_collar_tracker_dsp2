@@ -2,7 +2,9 @@ import argparse
 import logging
 import logging.handlers
 import os
+import shutil
 import subprocess
+import sys
 import threading
 import time
 from enum import Enum, auto
@@ -14,7 +16,7 @@ from RCTComms.comms import EVENTS
 from RCTComms.transport import RCTTransportFactory
 
 from autostart.networking import NetworkMonitor, NetworkProfileNotFound
-from autostart.options import RCTOpts, Options
+from autostart.options import Options, RCTOpts
 from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES
 from autostart.tcp_command import CommandListener
 from autostart.UIB_instance import UIBoard
@@ -126,6 +128,7 @@ class RCTRun:
     def start(self):
         """Starts all RCTRun Threads
         """
+        self.check_for_external_update()
         self.init_comms()
         self.init_threads()
         self.heartbeat_thread.start()
@@ -388,6 +391,45 @@ class RCTRun:
             log.exception(exc)
             raise exc
         self.flags[self.Flags.STORAGE_READY].set()
+
+    def check_for_external_update(self):
+        """Checks for external updates.
+
+        This must only be called if we are searching into an external drive.
+
+        We use output_dir/install - if there exist wheels, we install all of
+        the wheels.  If there is an rct_config file, we install it.
+        output_dir/install will then be deleted, and we restart.
+        """
+        output_dir = Path(self.__options.get_option(Options.SYS_OUTPUT_DIR))
+        if not output_dir.is_dir():
+            self.__log.warning('Invalid output dir')
+            return
+
+        if not output_dir.is_mount():
+            self.__log.warning('Output dir is not a mount, not checking for '
+                               'updates')
+            return
+        install_path = output_dir.joinpath('install')
+        if not install_path.exists():
+            self.__log.info('install not found, no updates')
+        if not install_path.is_dir():
+            self.__log.warning('install is not a directory, failing update')
+            return
+        
+        wheels = list(install_path.glob('*.whl'))
+        config = list(install_path.glob('rct_config'))
+
+        install_cmd = [sys.executable, '-m', 'pip', 'install', '--force-reinstall']
+        install_cmd.extend(wheels)
+
+        subprocess.run(install_cmd, check=True)
+        shutil.copy(config, self.__config_path)
+
+        shutil.rmtree(install_path)
+        os.execv(sys.argv[0], sys.argv)
+
+
 
 def configure_loggers():
     root_logger = logging.getLogger()

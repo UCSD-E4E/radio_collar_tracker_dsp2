@@ -80,15 +80,9 @@ class RCTRun:
         self.heartbeat_thread = InstrumentedThread(target=self.uib_heartbeat,
                                                  name='UIB Heartbeat',
                                                  daemon=True)
-        self.init_sdr_thread = InstrumentedThread(target=self.initSDR,
-                                                kwargs={'test':self.test},
-                                                name='SDR Init')
-        self.init_output_thread = InstrumentedThread(target=self.initOutput,
-                                                   kwargs={'test':self.test},
-                                                   name='Output Init')
-        self.init_gps_thread = InstrumentedThread(target=self.initGPS,
-                                                kwargs={'test':self.test},
-                                                name='GPS Init')
+        self.init_sdr_thread: Optional[InstrumentedThread] = None
+        self.init_output_thread: Optional[InstrumentedThread] = None
+        self.init_gps_thread: Optional[InstrumentedThread] = None
         try:
             self.network_monitor = NetworkMonitor(
                 network_profile=self.__options.get_option(Options.SYS_NETWORK),
@@ -149,10 +143,19 @@ class RCTRun:
         """System Initialization thread execution
         """
         self.flags[self.Flags.INIT_COMPLETE].clear()
+        self.init_sdr_thread = InstrumentedThread(target=self.initSDR,
+                                                kwargs={'test':self.test},
+                                                name='SDR Init')
         self.init_sdr_thread.start()
         self.__log.debug("RCTRun init: started SDR thread")
+        self.init_output_thread = InstrumentedThread(target=self.initOutput,
+                                                   kwargs={'test':self.test},
+                                                   name='Output Init')
         self.init_output_thread.start()
         self.__log.debug("RCTRun init: started output thread")
+        self.init_gps_thread = InstrumentedThread(target=self.initGPS,
+                                                kwargs={'test':self.test},
+                                                name='GPS Init')
         self.init_gps_thread.start()
         self.__log.debug("RCTRun init: started GPS thread")
 

@@ -13,7 +13,7 @@ from typing import Callable, Dict, List, Optional
 from RCTComms.comms import EVENTS
 from RCTComms.transport import RCTTransportFactory
 
-from autostart.networking import NetworkMonitor
+from autostart.networking import NetworkMonitor, NetworkProfileNotFound
 from autostart.options import RCTOpts, Options
 from autostart.states import OUTPUT_DIR_STATES, RCT_STATES, SDR_INIT_STATES
 from autostart.tcp_command import CommandListener
@@ -96,6 +96,9 @@ class RCTRun:
             )
         except KeyError:
             self.network_monitor = None
+        except NetworkProfileNotFound:
+            self.network_monitor = None
+        
 
     def register_cb(self, event: Event, cb_: Callable[[Event], None]) -> None:
         """Registers a new callback for the specified event

@@ -15,7 +15,9 @@ import nmcli
 
 from autostart.utils import InstrumentedThread
 
-
+class NetworkProfileNotFound(RuntimeError):
+    """Network Profile Not Found
+    """
 class NetworkMonitor:
     """Class that monitors the current network status
 
@@ -50,7 +52,7 @@ class NetworkMonitor:
             flag: threading.Event() for flag in NetworkMonitor.Flag
         }
         if network_profile not in self.__profile_map():
-            raise RuntimeError('Network profile not found')
+            raise NetworkProfileNotFound
 
         self.__thread: Optional[InstrumentedThread] = None
 

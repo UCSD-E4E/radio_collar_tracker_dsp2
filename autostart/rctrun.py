@@ -256,7 +256,7 @@ class RCTRun:
                     self.__log.debug("Enterring start pingFinder6")
                     self.ping_finder.output_dir = run_dir.as_posix()
                     self.__log.debug("Enterring start pingFinder7")
-                    self.ping_finder.ping_width_ms = opts.get_option(Options.DSP_PING_WIDTH)
+                    self.ping_finder.ping_width_ms = int(opts.get_option(Options.DSP_PING_WIDTH))
                     self.__log.debug("Enterring start pingFinder8")
                     self.ping_finder.ping_min_snr = opts.get_option(Options.DSP_PING_SNR)
                     self.__log.debug("Enterring start pingFinder9")

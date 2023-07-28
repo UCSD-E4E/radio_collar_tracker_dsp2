@@ -9,8 +9,9 @@ import sys
 import time
 from enum import IntEnum
 from pathlib import Path
+from typing import Any
 
-from RCTComms.comms import (EVENTS, mavComms, rctACKCommand,
+from RCTComms.comms import (EVENTS, RctEngrCommand, mavComms, rctACKCommand,
                             rctBinaryPacketFactory, rctFrequenciesPacket,
                             rctGETFCommand, rctGETOPTCommand,
                             rctHeartBeatPacket, rctOptionsPacket,
@@ -23,7 +24,7 @@ from RCTComms.transport import RCTAbstractTransport
 from autostart.options import RCTOpts
 from autostart.UIB_instance import UIBoard
 from autostart.utils import InstrumentedThread
-
+from autostart.eng_cmd import handle_engr_cmd
 
 class COMMS_STATES(IntEnum):
     disconnected = 0
@@ -350,3 +351,6 @@ class CommandListener:
             EVENTS.DATA_PING, self.port.sendPing)
         self.UIBoard.register_callback(
             EVENTS.DATA_VEHICLE, self.port.sendVehicle)
+
+    def _got_engr_cmd(self, packet: RctEngrCommand, addr: Any):
+        handle_engr_cmd(packet.command_word, **packet.args)

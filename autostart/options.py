@@ -29,10 +29,10 @@ class RCTOpts:
 
     def __init__(self, *,
                  config_path: Path = Path('/usr/local/etc/rct_config')):
+        self.__log = logging.getLogger('Opts')
         self._config_file = config_path
         self._params: Dict[Options, Any] = {}
         self.loadParams()
-        self.__log = logging.getLogger('Opts')
 
     @deprecated
     def loadParams(self) -> None:

@@ -413,6 +413,7 @@ class RCTRun:
         install_path = output_dir.joinpath('install')
         if not install_path.exists():
             self.__log.info('install not found, no updates')
+            return
         if not install_path.is_dir():
             self.__log.warning('install is not a directory, failing update')
             return

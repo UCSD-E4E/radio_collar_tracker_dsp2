@@ -480,6 +480,9 @@ def main():
     except Exception as exc:
         logging.exception('Unhandled fatal exception!')
         raise exc
+    while True:
+        # Wait for the system to end
+        pass
 
 if __name__ == "__main__":
     main()

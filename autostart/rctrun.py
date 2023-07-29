@@ -46,9 +46,13 @@ class RCTRun:
     def __init__(self,
             test = False, *,
             config_path: Path = Path('/usr/local/etc/rct_config'),
-            allow_nonmount: bool = False):
+            allow_nonmount: bool = False,
+            service: bool = False):
         self.__options = RCTOpts.get_instance(config_path)
-        
+
+        if service and not self.__options.get_option(Options.SYS_AUTOSTART):
+            raise RuntimeError('No Autostart from service')
+
         self.__config_path = config_path
         self.__allow_nonmount = allow_nonmount
 
@@ -461,6 +465,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', type=Path)
     parser.add_argument('--no_mount', action='store_true')
+    parser.add_argument('--service', action='store_true')
     args = parser.parse_args()
 
     kwargs = {
@@ -468,14 +473,13 @@ def main():
     if args.config:
         kwargs['config_path'] = args.config
     kwargs['allow_nonmount'] = args.no_mount
+    kwargs['service'] = args.service
     try:
         app = RCTRun(**kwargs)
         app.start()
     except Exception as exc:
         logging.exception('Unhandled fatal exception!')
         raise exc
-    while True:
-        pass
 
 if __name__ == "__main__":
     main()

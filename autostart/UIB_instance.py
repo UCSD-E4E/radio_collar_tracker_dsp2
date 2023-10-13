@@ -6,6 +6,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import serial
+import smbus
 from RCTComms.comms import EVENTS, rctPingPacket, rctVehiclePacket
 
 from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
@@ -14,6 +15,8 @@ from autostart.utils import InstrumentedThread
 
 
 class UIBoard:
+
+    
     def __init__(self, port="none", baud=115200, test_mode=False):
         '''
         Store current status
@@ -21,14 +24,18 @@ class UIBoard:
         Store most recent ping?
         '''
         self.__log = logging.getLogger("UI Board")
-        self.__log.info("Initialized on %s at %d baud, mode=%s",
-            port, baud, str(test_mode))
+        # Get I2C bus
+        self.bus = smbus.SMBus(1)
 
         self._system_state = 0
         self._sdr_state = 0
         self._sensor_state = 0
         self._storage_state = 0
         self._switch = 0
+        # I2C parameters
+        self.i2c_address = 0x1E  # HMC5983 I2C device address
+        self.i2c_read = 0x3D  # HMC5983 I2C device read
+        self.i2c_write = 0x3C # HMC5983 I2C device write
 
         self.__sensor_callbacks: Dict[EVENTS, List[Callable]]= {
             evt:[] for evt in EVENTS
@@ -226,9 +233,11 @@ class UIBoard:
 
     def uib_listener(self):
         '''
-        Continuously listens to uib serial port for Sensor Packets
+        Continuously listens to uib I2C address for Sensor Packets
         '''
         self.__init_gps()
+
+        
 
         lon = -117.23679
         lat = 32.88534
@@ -241,23 +250,28 @@ class UIBoard:
                 date = datetime.datetime.now()
             else:
                 try:
-                    ret = self.__port.readline().decode('ascii')
-                except serial.SerialException:
-                    self.__log.exception('Failed to read from serial')
+                    # Read data from I2C
+                    data = self.bus.read_i2c_block_data(self.i2c_address, self.i2c_write)
+                    ret = ''.join(chr(byte) for byte in data).strip()  # Convert bytes to string
+                except IOError:
+                    self.__log.exception('Failed to read from I2C')
                     continue
+                
                 if ret is None or ret == '':
                     continue
+
                 try:
                     lat, lon, hdg, date = self.parse_uib_message(ret)
                 except json.JSONDecodeError:
                     continue
+            
             self.gps_ready.set()
 
             packet = rctVehiclePacket(lat=lat,
-                                      lon=lon,
-                                      alt=0,
-                                      hdg=hdg,
-                                      timestamp=date)
+                                    lon=lon,
+                                    alt=0,
+                                    hdg=hdg,
+                                    timestamp=date)
             self.recentLoc = [lat, lon, 0]
 
             self.handle_sensor_packet(packet)

@@ -14,9 +14,103 @@ from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
 from autostart.utils import InstrumentedThread
 
 
-class UIBoard:
-
+# class RCTI2CController():
     
+#     def __init__(self, port_name, i2c_address = 0x1E, i2c_read = 0x3D, i2c_write = 0x3C) -> None:
+#         '''
+#         Default parameters for HMC5983 connection
+#         HMC5983 I2C device address 0x1E
+#         HMC5983 I2C device read 0x3D
+#         HMC5983 I2C device write 0x3C
+#         '''        
+#         self.__port_name = port_name
+#         # grab the current directory then the number for i2c-X
+#         self.__port_num = int(self.__port_name.split("/")[-1].split("-")[-1])
+#         self.i2c_address = i2c_address
+#         self.i2c_read = i2c_read
+#         self.i2c_write = i2c_write
+#         self.__fail = False
+#         self.__bus = None
+#     def open(self) -> None:
+#         if self.__bus == None:
+#             try:
+#                 self.__bus = smbus.SMBus(self.__port_num)
+#             except Exception as e:
+#                 self.__log.error(f"Failed to open SMBus on port i2c-{self.__port_num}: {str(e)}")
+#                 self.__bus = None
+#         else:
+#             self.__bus.open(self.__port_num)
+    
+        
+#     def close(self) -> None:
+#         self.__bus.close()
+       
+#     def receive(self, buffer_len: int) -> Tuple[bytes, str]:
+#         '''
+#         Continuously listens to uib I2C address for Sensor Packets
+#         '''
+#         new_buffer = []
+#         try:
+#             # Linux I2C and SMBus kernel API has maximum 32 byte limit due to internal representation 
+#             while buffer_len:
+#                 current_len = min(buffer_len, 31)  # Read up to 31 bytes, or fewer if less than 31 bytes remain
+#                 data = self.__bus.read_i2c_block_data(self.i2c_address, self.i2c_read, current_len)
+#                 new_buffer.extend(data)
+#                 buffer_len -= current_len
+#             return bytes(new_buffer), str(self.i2c_address)
+#         except Exception as exc:
+#             self.__log.exception('Failed to revieve from I2C')
+#             self.__fail = True
+#             raise(exc)    
+       
+#     def send(self, data: bytes) -> None:
+#         data_length = len(data)
+#         # If data is empty, return early
+#         if (data_length == 0):
+#             return
+        
+#         # Break the data into chunks
+#         data_chunks = [data[i:i+31] for i in range(0, data_length, 31)]
+#         for chunk in data_chunks:
+#             try:
+#                 self.__bus.write_i2c_block_data(self.i2c_address, self.i2c_write, chunk)
+#             except Exception as exc:
+#                 self.__log.exception('Failed to write to I2C')
+#                 self.__fail = True
+#                 raise(exc)     
+    
+#     def isOpen(self) -> bool:
+#         return self.__bus._fd != -1
+    
+#     @property
+#     def port_name(self) -> str:
+#         """Returns 
+
+#         Returns:
+#             str: String representation of the port
+#         """
+#         return self.__port_name.split("/")[-1]
+    
+#     def reconnect_on_fail(self, timeout: int = 30):
+#         if not self.__fail:
+#             return
+
+#         start = datetime.datetime.now()
+
+#         self.close()  # Centralized logic for closing the bus
+
+#         while (datetime.datetime.now() - start).total_seconds() < timeout:
+#             try:
+#                 self.open()  # Open the bus
+#                 self.__fail = False  # Reset the fail flag
+#                 break  # Exit the loop since the connection is re-established
+#             except Exception:  # pylint: disable=broad-except
+#                 # need to keep trying until timeout
+#                 self.__log.exception('Failed to open on reconnect')
+#                 time.sleep(1)
+#         raise Exception('Unable to reconnect')
+
+class I2CUIBoard:
     def __init__(self, port="none", baud=115200, test_mode=False):
         '''
         Store current status
@@ -25,7 +119,7 @@ class UIBoard:
         '''
         self.__log = logging.getLogger("UI Board")
         # Get I2C bus
-        self.bus = smbus.SMBus(1)
+        self.bus = None
 
         self._system_state = 0
         self._sdr_state = 0
@@ -46,10 +140,10 @@ class UIBoard:
         self.timestamp = None
 
         self.test_mode = test_mode
-        self.__port: Optional[serial.Serial] = None
-        self.__device = port
-        self.__baud = baud
-
+        self.__port: port
+        # grab the current directory then the number for i2c-X
+        self.__port_num = int(self.__port.split("/")[-1].split("-")[-1])
+       
         self.run = True
         self.gps_ready = threading.Event()
         self.listener = InstrumentedThread(target=self.uib_listener,
@@ -147,6 +241,7 @@ class UIBoard:
     def send_heartbeat(self):
         """Sends a heartbeat packet to the UI Board
         """
+        # TODO: CHANGED
         if self.test_mode:
             return
         output = {
@@ -154,9 +249,19 @@ class UIBoard:
             'SYS': self.system_state,
             'SDF': self.sdr_state
         }
-        self.__port.write(json.dumps(output).encode())
+        message = json.dumps(output).encode()
+        message_len = len(json.dumps(output).encode())        
+        # Break the data into chunks
+        data_chunks = [message[i:i+31] for i in range(0, message_len, 31)]
+        for chunk in data_chunks:
+            try:
+                self.bus.write_i2c_block_data(self.i2c_address, self.i2c_write, chunk)
+            except Exception as exc:
+                self.__log.exception('Failed to write to I2C')
+                raise(exc)     
 
     def __init_gps(self):
+        
         if self.test_mode:
             self.sensor_state = GPS_STATES.rdy
             self.__log.debug('External Sensor State: %s', self.sensor_state)
@@ -165,18 +270,21 @@ class UIBoard:
         self.gps_ready.clear()
 
         self.sensor_state = GPS_STATES.get_tty
-        while self.__port is None:
+
+        while self.bus is None:
             try:
-                self.__port = serial.Serial(self.__device, baudrate=self.__baud)
+                self.bus = smbus.SMBus(self.__port_num)
             except Exception as exc: # pylint: disable=broad-except
-                self.__log.exception('Failed to create serial handle: %s', exc)
-                self.sensor_state = GPS_STATES.fail
+                self.__log.error(f"Failed to open SMBus on port\
+                                  i2c-{self.__port_num}: {str(e)}")
+                self.bus = None
                 time.sleep(1)
 
         self.sensor_state = GPS_STATES.get_msg
         while True:
             try:
                 self.__port.timeout = 1
+                # TODO: CHANGE
                 line = self.__port.readline().decode(encoding='utf-8')
                 if line is None or line == '':
                     raise TimeoutError
@@ -235,10 +343,8 @@ class UIBoard:
         '''
         Continuously listens to uib I2C address for Sensor Packets
         '''
+        # TODO: CHANGE
         self.__init_gps()
-
-        
-
         lon = -117.23679
         lat = 32.88534
         while self.run:

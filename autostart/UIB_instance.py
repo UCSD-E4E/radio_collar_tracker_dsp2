@@ -180,7 +180,7 @@ class I2CUIBoard:
                 self.bus = smbus.SMBus(self.__port_num)
             except Exception as exc: # pylint: disable=broad-except
                 self.__log.error(f"Failed to open SMBus on port\
-                                  i2c-{self.__port_num}: {str(e)}")
+                                  i2c-{self.__port_num}: {str(exc)}")
                 self.bus = None
                 time.sleep(1)
 
@@ -194,18 +194,21 @@ class I2CUIBoard:
                     line_bytes = bytes(data) 
                     line = line_bytes.decode("utf-8")
                     if line is None or line == '':
-                        self.__log.error("__init_gps data is None")
-                    json.loads(line)
+                        self.__log.error("__init_gps: Received empty line")
+                        continue
+                    try:
+                        json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        self.__log.exception('Bad message: %s', line)
+                        self.sensor_state = GPS_STATES.fail
+                        continue
                     break
                 elif byte != 0x0A: 
                     data.append(byte)
                     continue
-
-            except json.JSONDecodeError as exc:
-                self.__log.exception('Bad message: %s', line)
-                self.sensor_state = GPS_STATES.fail
-                continue
-
+            except Exception as exc: 
+                self.__log.exception(f"Error reading byte: {str(exc)}")
+                continue  
         self.sensor_state = GPS_STATES.rdy
         self.__log.info('GPS Ready')
         self.gps_ready.set()
@@ -262,8 +265,8 @@ class I2CUIBoard:
                 while True:
                     byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
                     if byte == 0x0A: # this represents the '\n' character
-                        messsage_bytes = bytes(data) 
-                        message = messsage_bytes.decode("utf-8")
+                        message_bytes = bytes(data)
+                        message = message_bytes.decode("utf-8")
                         try:
                             lat, lon, hdg, date = self.parse_uib_message(message)
                             self.gps_ready.set()
@@ -277,12 +280,12 @@ class I2CUIBoard:
 
                             self.handle_sensor_packet(packet)
                             self.__last_timestamp = date
+                            break
                         except json.JSONDecodeError:
                             continue
 
                     if byte != 0x0A: 
                         data.append(byte)
-                        continue
             
     def send_ping(self, now, amplitude, frequency):
         if self.recentLoc is not None:

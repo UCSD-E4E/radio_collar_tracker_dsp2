@@ -14,102 +14,6 @@ from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
 from autostart.utils import InstrumentedThread
 
 
-# class RCTI2CController():
-    
-#     def __init__(self, port_name, i2c_address = 0x1E, i2c_read = 0x3D, i2c_write = 0x3C) -> None:
-#         '''
-#         Default parameters for HMC5983 connection
-#         HMC5983 I2C device address 0x1E
-#         HMC5983 I2C device read 0x3D
-#         HMC5983 I2C device write 0x3C
-#         '''        
-#         self.__port_name = port_name
-#         # grab the current directory then the number for i2c-X
-#         self.__port_num = int(self.__port_name.split("/")[-1].split("-")[-1])
-#         self.i2c_address = i2c_address
-#         self.i2c_read = i2c_read
-#         self.i2c_write = i2c_write
-#         self.__fail = False
-#         self.__bus = None
-#     def open(self) -> None:
-#         if self.__bus == None:
-#             try:
-#                 self.__bus = smbus.SMBus(self.__port_num)
-#             except Exception as e:
-#                 self.__log.error(f"Failed to open SMBus on port i2c-{self.__port_num}: {str(e)}")
-#                 self.__bus = None
-#         else:
-#             self.__bus.open(self.__port_num)
-    
-        
-#     def close(self) -> None:
-#         self.__bus.close()
-       
-#     def receive(self, buffer_len: int) -> Tuple[bytes, str]:
-#         '''
-#         Continuously listens to uib I2C address for Sensor Packets
-#         '''
-#         new_buffer = []
-#         try:
-#             # Linux I2C and SMBus kernel API has maximum 32 byte limit due to internal representation 
-#             while buffer_len:
-#                 current_len = min(buffer_len, 31)  # Read up to 31 bytes, or fewer if less than 31 bytes remain
-#                 data = self.__bus.read_i2c_block_data(self.i2c_address, self.i2c_read, current_len)
-#                 new_buffer.extend(data)
-#                 buffer_len -= current_len
-#             return bytes(new_buffer), str(self.i2c_address)
-#         except Exception as exc:
-#             self.__log.exception('Failed to revieve from I2C')
-#             self.__fail = True
-#             raise(exc)    
-       
-#     def send(self, data: bytes) -> None:
-#         data_length = len(data)
-#         # If data is empty, return early
-#         if (data_length == 0):
-#             return
-        
-#         # Break the data into chunks
-#         data_chunks = [data[i:i+31] for i in range(0, data_length, 31)]
-#         for chunk in data_chunks:
-#             try:
-#                 self.__bus.write_i2c_block_data(self.i2c_address, self.i2c_write, chunk)
-#             except Exception as exc:
-#                 self.__log.exception('Failed to write to I2C')
-#                 self.__fail = True
-#                 raise(exc)     
-    
-#     def isOpen(self) -> bool:
-#         return self.__bus._fd != -1
-    
-#     @property
-#     def port_name(self) -> str:
-#         """Returns 
-
-#         Returns:
-#             str: String representation of the port
-#         """
-#         return self.__port_name.split("/")[-1]
-    
-#     def reconnect_on_fail(self, timeout: int = 30):
-#         if not self.__fail:
-#             return
-
-#         start = datetime.datetime.now()
-
-#         self.close()  # Centralized logic for closing the bus
-
-#         while (datetime.datetime.now() - start).total_seconds() < timeout:
-#             try:
-#                 self.open()  # Open the bus
-#                 self.__fail = False  # Reset the fail flag
-#                 break  # Exit the loop since the connection is re-established
-#             except Exception:  # pylint: disable=broad-except
-#                 # need to keep trying until timeout
-#                 self.__log.exception('Failed to open on reconnect')
-#                 time.sleep(1)
-#         raise Exception('Unable to reconnect')
-
 class I2CUIBoard:
     def __init__(self, port="none", baud=115200, test_mode=False):
         '''
@@ -281,23 +185,22 @@ class I2CUIBoard:
                 time.sleep(1)
 
         self.sensor_state = GPS_STATES.get_msg
+        data = [] 
         while True:
             try:
-                self.__port.timeout = 1
-                # TODO: CHANGE
-                line = self.__port.readline().decode(encoding='utf-8')
-                if line is None or line == '':
-                    raise TimeoutError
-                json.loads(line)
-                break
-            except serial.SerialException as exc:
-                self.__log.exception('Failed to read from serial: %s', exc)
-                self.sensor_state = GPS_STATES.fail
-                continue
-            except TimeoutError:
-                self.__log.exception('Failed to receive data')
-                self.sensor_state = GPS_STATES.fail
-                continue
+                # TODO: CHANGED
+                byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
+                if byte == 0x0A: # this represents the '\n' character
+                    line_bytes = bytes(data) 
+                    line = line_bytes.decode("utf-8")
+                    if line is None or line == '':
+                        self.__log.error("__init_gps data is None")
+                    json.loads(line)
+                    break
+                elif byte != 0x0A: 
+                    data.append(byte)
+                    continue
+
             except json.JSONDecodeError as exc:
                 self.__log.exception('Bad message: %s', line)
                 self.sensor_state = GPS_STATES.fail
@@ -343,7 +246,7 @@ class I2CUIBoard:
         '''
         Continuously listens to uib I2C address for Sensor Packets
         '''
-        # TODO: CHANGE
+        # TODO: CHANGED
         self.__init_gps()
         lon = -117.23679
         lat = 32.88534
@@ -355,34 +258,34 @@ class I2CUIBoard:
                 hdg = 0
                 date = datetime.datetime.now()
             else:
-                try:
-                    # Read data from I2C
-                    data = self.bus.read_i2c_block_data(self.i2c_address, self.i2c_write)
-                    ret = ''.join(chr(byte) for byte in data).strip()  # Convert bytes to string
-                except IOError:
-                    self.__log.exception('Failed to read from I2C')
-                    continue
-                
-                if ret is None or ret == '':
-                    continue
+                data = [] 
+                while True:
+                    byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
+                    if byte == 0x0A: # this represents the '\n' character
+                        # convert byte to ascii representation then decode
+                        # to get string
+                        messsage_bytes = bytes(data) 
+                        message = messsage_bytes.decode("utf-8")
+                        try:
+                            lat, lon, hdg, date = self.parse_uib_message(message)
+                            self.gps_ready.set()
 
-                try:
-                    lat, lon, hdg, date = self.parse_uib_message(ret)
-                except json.JSONDecodeError:
-                    continue
+                            packet = rctVehiclePacket(lat=lat,
+                                                    lon=lon,
+                                                    alt=0,
+                                                    hdg=hdg,
+                                                    timestamp=date)
+                            self.recentLoc = [lat, lon, 0]
+
+                            self.handle_sensor_packet(packet)
+                            self.__last_timestamp = date
+                        except json.JSONDecodeError:
+                            continue
+
+                    if byte != 0x0A: 
+                        data.append(byte)
+                        continue
             
-            self.gps_ready.set()
-
-            packet = rctVehiclePacket(lat=lat,
-                                    lon=lon,
-                                    alt=0,
-                                    hdg=hdg,
-                                    timestamp=date)
-            self.recentLoc = [lat, lon, 0]
-
-            self.handle_sensor_packet(packet)
-            self.__last_timestamp = date
-
     def send_ping(self, now, amplitude, frequency):
         if self.recentLoc is not None:
             packet = rctPingPacket(self.recentLoc[0], self.recentLoc[1], self.recentLoc[2], amplitude, frequency, now)

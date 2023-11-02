@@ -262,8 +262,6 @@ class I2CUIBoard:
                 while True:
                     byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
                     if byte == 0x0A: # this represents the '\n' character
-                        # convert byte to ascii representation then decode
-                        # to get string
                         messsage_bytes = bytes(data) 
                         message = messsage_bytes.decode("utf-8")
                         try:

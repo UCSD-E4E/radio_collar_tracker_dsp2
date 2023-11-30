@@ -3,7 +3,7 @@
 from enum import IntEnum, Enum
 
 
-class GPS_STATES(IntEnum):
+class SENSOR_STATES(IntEnum):
 	get_tty = 0
 	get_msg = 1
 	wait_recycle = 2

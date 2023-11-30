@@ -9,27 +9,31 @@ import serial
 import smbus
 from RCTComms.comms import EVENTS, rctPingPacket, rctVehiclePacket
 
-from autostart.states import (GPS_STATES, OUTPUT_DIR_STATES, RCT_STATES,
+from autostart.states import (SENSOR_STATES, OUTPUT_DIR_STATES, RCT_STATES,
                               SDR_INIT_STATES)
 from autostart.utils import InstrumentedThread
 
 
 class I2CUIBoard:
-    def __init__(self, port="none", baud=115200, test_mode=False):
+    def __init__(self, port="none", baud=115200, i2c_port="none", test_mode=False):
         '''
         Store current status
         store most recent GPS and Compass info
         Store most recent ping?
         '''
         self.__log = logging.getLogger("UI Board")
-        # Get I2C bus
-        self.bus = None
-
+        self.__log.info("Serial port initialized on %s at %d baud, "
+                        "I2C port initialized on %s, mode=%s", 
+                        port, baud, i2c_port, test_mode)
+        
         self._system_state = 0
         self._sdr_state = 0
         self._sensor_state = 0
         self._storage_state = 0
         self._switch = 0
+
+        # Get I2C bus
+        self.bus = None
         # I2C parameters
         self.i2c_address = 0x1E  # HMC5983 I2C device address
         self.i2c_read = 0x3D  # HMC5983 I2C device read
@@ -44,12 +48,19 @@ class I2CUIBoard:
         self.timestamp = None
 
         self.test_mode = test_mode
-        self.__port: port
+        self.__port: Optional[serial.Serial] = None
+        self.__device = port
+        self.__baud = baud
+
+        self.__i2c_port = i2c_port
         # grab the current directory then the number for i2c-X
-        self.__port_num = int(self.__port.split("/")[-1].split("-")[-1])
-       
+        self.__i2c_port_num = int(self.__i2c_port.split("/")[-1].split("-")[-1])
+        
         self.run = True
         self.gps_ready = threading.Event()
+        self.sensors_ready = threading.Event()
+        self.compass_data = None
+        self.gps_data = None
         self.listener = InstrumentedThread(target=self.uib_listener,
                                          name='UIB Listener',
                                          daemon=True)
@@ -61,6 +72,7 @@ class I2CUIBoard:
                                           name='UIB Monitor',
                                           daemon=True)
         self.__monitor.start()
+        
 
     @property
     def system_state(self) -> int:
@@ -108,7 +120,7 @@ class I2CUIBoard:
         if not isinstance(state, int):
             raise RuntimeError('Illegal type')
         self._sensor_state = state
-        self.__log.warning("Sensor state set to %s", GPS_STATES(state).name)
+        self.__log.warning("Sensor state set to %s", SENSOR_STATES(state).name)
 
     @property
     def storage_state(self) -> int:
@@ -165,64 +177,67 @@ class I2CUIBoard:
                 raise(exc)     
 
     def __init_gps(self):
-        
         if self.test_mode:
-            self.sensor_state = GPS_STATES.rdy
+            self.sensor_state = SENSOR_STATES.rdy
             self.__log.debug('External Sensor State: %s', self.sensor_state)
             return
 
         self.gps_ready.clear()
 
-        self.sensor_state = GPS_STATES.get_tty
-
-        while self.bus is None:
+        self.sensor_state = SENSOR_STATES.get_tty
+        while self.__port is None:
             try:
-                self.bus = smbus.SMBus(self.__port_num)
+                self.__port = serial.Serial(self.__device, baudrate=self.__baud)
             except Exception as exc: # pylint: disable=broad-except
-                self.__log.error(f"Failed to open SMBus on port\
-                                  i2c-{self.__port_num}: {str(exc)}")
-                self.bus = None
+                self.__log.exception('Failed to create serial handle: %s', exc)
+                self.sensor_state = SENSOR_STATES.fail
                 time.sleep(1)
 
-        self.sensor_state = GPS_STATES.get_msg
-        data = [] 
+        self.sensor_state = SENSOR_STATES.get_msg
         while True:
             try:
-                # TODO: CHANGED
-                byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
-                if byte == 0x0A: # this represents the '\n' character
-                    line_bytes = bytes(data) 
-                    line = line_bytes.decode("utf-8")
-                    if line is None or line == '':
-                        self.__log.error("__init_gps: Received empty line")
-                        continue
-                    try:
-                        json.loads(line)
-                    except json.JSONDecodeError as exc:
-                        self.__log.exception('Bad message: %s', line)
-                        self.sensor_state = GPS_STATES.fail
-                        continue
-                    break
-                elif byte != 0x0A: 
-                    data.append(byte)
-                    continue
-            except Exception as exc: 
-                self.__log.exception(f"Error reading byte: {str(exc)}")
-                continue  
-        self.sensor_state = GPS_STATES.rdy
+                self.__port.timeout = 1
+                line = self.__port.readline().decode(encoding='utf-8')
+                if line is None or line == '':
+                    raise TimeoutError
+                json.loads(line)
+                break
+            except serial.SerialException as exc:
+                self.__log.exception('Failed to read from serial: %s', exc)
+                self.sensor_state = SENSOR_STATES.fail
+                continue
+            except TimeoutError:
+                self.__log.exception('Failed to receive data')
+                self.sensor_state = SENSOR_STATES.fail
+                continue
+            except json.JSONDecodeError as exc:
+                self.__log.exception('Bad message: %s', line)
+                self.sensor_state = SENSOR_STATES.fail
+                continue
+
+        self.sensor_state = SENSOR_STATES.rdy
         self.__log.info('GPS Ready')
         self.gps_ready.set()
 
+    def __init_compass(self):
+        while self.bus is None:
+            try:
+                self.bus = smbus.SMBus(self.__i2c_port_num)
+            except Exception as exc: # pylint: disable=broad-except
+                self.__log.error(f"Failed to open SMBus on port\
+                                  i2c-{self.__i2c_port_num}: {str(exc)}")
+                self.bus = None
+                time.sleep(1)
+
     def parse_uib_message(self, msg: str) -> \
-            Tuple[float, float, float, datetime.datetime]:
+            Tuple[float, float, datetime.datetime]:
         """Parses the UIB position message
 
         Raises:
             exc: json.JSONDecodeError if the message is malformed
 
         Returns:
-            Tuple[float, float, float, datetime.datetime]: Lat, Lon, Heading,
-            and timestamp
+            Tuple[float, float, datetime.datetime]: Lat, Lon, and timestamp
         """
         try:
             reading = json.loads(msg)
@@ -231,7 +246,6 @@ class I2CUIBoard:
             raise exc
         lat = reading["lat"] / 1e7
         lon = reading["lon"] / 1e7
-        hdg = reading["hdg"]
         tme = reading["tme"]
         dat = reading["dat"]
 
@@ -243,14 +257,46 @@ class I2CUIBoard:
                             minute=int(tme[2:4]),
                             second=int(tme[4:6]))
         date = datetime.datetime.combine(day, tim)
-        return (lat, lon, hdg, date)
+        return (lat, lon, date)
+
+    def read_compass(self):
+        while self.run:
+            if self.test_mode:
+                time.sleep(1)
+                hdg = 0 
+            else:
+                header_list = []
+                for _ in range(4):
+                    hdg = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
+                    header_list.append(hdg)
+                header_list_bytes = bytes(header_list) 
+                header = header_list_bytes.decode("utf-8")
+                self.compass_data = header
+                self.sensors_ready.wait()
+
+
+    def read_gps(self):
+        while self.run:
+            try:
+                ret = self.__port.readline().decode('ascii')
+            except serial.SerialException:
+                self.__log.exception('Failed to read from serial')
+                continue
+            if ret is None or ret == '':
+                continue
+            try:
+                lat, lon, hdg, date = self.parse_uib_message(ret)
+            except json.JSONDecodeError:
+                continue
+            self.gps_data = lat, lon, hdg, date
+            self.sensors_ready.set()
 
     def uib_listener(self):
         '''
-        Continuously listens to uib I2C address for Sensor Packets
+        Continuously listens to uib serial port for Sensor Packets
         '''
-        # TODO: CHANGED
         self.__init_gps()
+        self.__init_compass()
         lon = -117.23679
         lat = 32.88534
         while self.run:
@@ -261,31 +307,30 @@ class I2CUIBoard:
                 hdg = 0
                 date = datetime.datetime.now()
             else:
-                data = [] 
-                while True:
-                    byte = self.bus.read_byte_data(self.i2c_address, self.i2c_read)
-                    if byte == 0x0A: # this represents the '\n' character
-                        message_bytes = bytes(data)
-                        message = message_bytes.decode("utf-8")
-                        try:
-                            lat, lon, hdg, date = self.parse_uib_message(message)
-                            self.gps_ready.set()
+                self.sensors_ready.clear()
+                gps_thread = threading.Thread(target=self.read_gps)
+                compass_thread = threading.Thread(target=self.read_compass)
 
-                            packet = rctVehiclePacket(lat=lat,
-                                                    lon=lon,
-                                                    alt=0,
-                                                    hdg=hdg,
-                                                    timestamp=date)
-                            self.recentLoc = [lat, lon, 0]
+                gps_thread.start()
+                compass_thread.start()
 
-                            self.handle_sensor_packet(packet)
-                            self.__last_timestamp = date
-                            break
-                        except json.JSONDecodeError:
-                            continue
+                gps_thread.join()
+                compass_thread.join()
 
-                    if byte != 0x0A: 
-                        data.append(byte)
+                lat, lon, date = self.gps_data
+                hdg = self.compass_data
+            
+            self.gps_ready.set()
+
+            packet = rctVehiclePacket(lat=lat,
+                                      lon=lon,
+                                      alt=0,
+                                      hdg=hdg,
+                                      timestamp=date)
+            self.recentLoc = [lat, lon, 0]
+
+            self.handle_sensor_packet(packet)
+            self.__last_timestamp = date
             
     def send_ping(self, now, amplitude, frequency):
         if self.recentLoc is not None:

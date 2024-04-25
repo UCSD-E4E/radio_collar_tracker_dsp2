@@ -52,20 +52,24 @@ void RCT::PingFinder::start(void)
         throw std::runtime_error("Unable to instantiate SDR instance");
     }
 
-    dsp = new RCT::DSP_V3{sampling_rate,
-                          center_frequency,
-                          target_frequencies,
-                          ping_width_ms,
-                          ping_min_snr,
-                          ping_max_len_mult,
-                          ping_min_len_mult,
-                          sdr->getRxBufferSize(),
-                          sdr->getBitDepth()};
-    if(nullptr == dsp)
+    if (nullptr == dsp)
     {
-        delete(sdr);
-        throw std::runtime_error("Unable to instantiate DSP instance");
+        dsp = new RCT::DSP_V3{sampling_rate,
+                              center_frequency,
+                              target_frequencies,
+                              ping_width_ms,
+                              ping_min_snr,
+                              ping_max_len_mult,
+                              ping_min_len_mult,
+                              sdr->getRxBufferSize(),
+                              sdr->getBitDepth()};
+        if (nullptr == dsp)
+        {
+            delete (sdr);
+            throw std::runtime_error("Unable to instantiate DSP instance");
+        }
     }
+
     if(!enable_test_data)
     {
         std::ostringstream buffer;
@@ -158,6 +162,11 @@ void RCT::PingFinder::stop(void)
     #if USE_PYBIND11 == 1
     callbacks.clear();
     #endif
+}
+
+void RCT::PingFinder::set_dsp_object(RCT::DSP &processor)
+{
+    this->dsp = &processor;
 }
 
 std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)

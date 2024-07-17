@@ -1,4 +1,5 @@
 #include "sdr_record.hpp"
+#include "dspv3.hpp"
 
 #include <unistd.h>
 
@@ -17,6 +18,19 @@ int main()
     pf->ping_min_len_mult = 0.5;
     pf->target_frequencies.insert(pf->target_frequencies.begin(), 173964000);
     pf->target_frequencies.insert(pf->target_frequencies.begin(), 173900000);
+
+    RCT::DSP *dsp_object = new RCT::DSP_V3{
+        pf->sampling_rate,
+        pf->center_frequency,
+        pf->target_frequencies,
+        pf->ping_width_ms,
+        pf->ping_min_snr,
+        pf->ping_max_len_mult,
+        pf->ping_min_len_mult,
+        1024,   // This probably isn't the right value!
+        16};
+
+    pf->set_dsp_object(*dsp_object);
 
     pf->start();
 

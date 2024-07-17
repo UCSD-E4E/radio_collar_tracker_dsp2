@@ -109,7 +109,7 @@ namespace RCT{
 		#endif
         void start(void);
         void stop(void);
-		void set_dsp_object(RCT::DSP& processor);
+        void set_dsp_object(RCT::DSP& processor);
 
         static std::unique_ptr<PingFinder> create(void);
 

@@ -151,7 +151,8 @@ setup(
             'numpy',
             'pytest-timeout',
             'mock-serial',
-            'python-semantic-release'
+            'python-semantic-release',
+            'pyyaml'
         ]
     }
 )

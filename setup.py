@@ -142,21 +142,9 @@ setup(
     packages=find_packages(),
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
-    python_requires=">=3.7",
+    python_requires=">=3.12",
     install_requires=[
-        'pyserial',
-        'RCTComms >= 0.0.0.11',
-        'pyyaml',
-        'nmcli',
-        'schema',
-        'Deprecated',
     ],
-    entry_points={
-        'console_scripts':[
-            'rctrun=autostart.rctrun:main',
-            'test_networkmonitor=autostart.networking:test_run'
-        ]
-    },
     extras_require={
         'dev': [
             'utm',

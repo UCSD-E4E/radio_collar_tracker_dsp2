@@ -59,6 +59,7 @@ jobs:
         fetch-depth: 0
         submodules: recursive
         ref: master
+        token: ${{ secrets.RELEASER }}
 
 
     - name: Python Semantic Release

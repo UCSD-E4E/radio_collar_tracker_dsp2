@@ -2,6 +2,7 @@
 #define __IQ_DATA_H__
 
 #include <complex>
+#include <cstdint>
 #include <memory>
 #include <vector>
 

@@ -60,6 +60,7 @@ jobs:
         submodules: recursive
         ref: master
         token: ${{ secrets.RELEASER }}
+        persist-credentials: true
 
 
     - name: Python Semantic Release

@@ -12,6 +12,17 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.8'
 description = 'RCT SDR Interface'
+dependencies = [
+    "numpy",
+    "scipy"
+]
+
+[project.optional-dependencies]
+docs = [
+    "jupyter",
+    "matplotlib"
+]
+
 
 [tool.semantic_release]
 version_variables = ["pyproject.toml:version", "rct_dsp2/__init__.py:__version__"]

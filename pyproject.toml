@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "rct_dsp2"
-version = "2.0.0"
+version = "1.0.0"
 authors = [
     {name = 'UCSD Engineers for Exploration', email = 'e4e@ucsd.edu'},
     {name = 'Nathan Hui', email = 'nthui@ucsd.edu'},

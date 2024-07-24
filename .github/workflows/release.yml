@@ -28,7 +28,7 @@ jobs:
                               libusb-1.0-0-dev \
                               libfftw3-dev \
                               python3-dev \
-                              libuhd-dev \
+                              libuhd-dev
           git clone --depth 1 https://github.com/airspy/airspyone_host.git /tmp/airspyone_host
           git clone --depth 1 https://github.com/greatscottgadgets/hackrf.git /tmp/hackrf
           mkdir /tmp/airspyone_host/build

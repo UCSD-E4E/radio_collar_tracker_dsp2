@@ -57,8 +57,8 @@ jobs:
 
         cd $GITHUB_WORKSPACE
         git submodule update --init --recursive
-        python setup.py bdist_wheel
-        cp ./dist/*.whl /tmp/wheels/
+        python -m pip wheel .
+        cp *.whl /tmp/wheels/
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:

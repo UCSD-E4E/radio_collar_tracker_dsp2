@@ -300,3 +300,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/python,c++,cmake,windows,linux,macos
 
 RAW_DATA*
+*.whl

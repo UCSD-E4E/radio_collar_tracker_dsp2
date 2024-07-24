@@ -86,7 +86,6 @@
     "editor.rulers": [
         100
     ],
-    "python.linting.pylintEnabled": true,
     "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "newLine",
     "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine",
     "C_Cpp.vcFormat.newLine.beforeOpenBrace.namespace": "newLine",
@@ -97,5 +96,6 @@
     "editor.formatOnSaveMode": "modifications",
     "C_Cpp.clang_format_style": "file",
     "C_Cpp.formatting": "clangFormat",
-    "C_Cpp.clang_format_sortIncludes": true
+    "C_Cpp.clang_format_sortIncludes": true,
+    "cmake.ctest.testExplorerIntegrationEnabled": false
 }

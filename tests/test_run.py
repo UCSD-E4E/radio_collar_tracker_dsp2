@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from RCTDSP2 import PingFinder
+from rct_dsp2 import PingFinder
 
 SDR_ENABLED = True
 GPS_ENABLED = True

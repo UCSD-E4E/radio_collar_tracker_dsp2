@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
-project(radio_collar_tracker_dsp2)
-add_subdirectory(extern/pybind11)
+project(${SKBUILD_PROJECT_NAME} 
+    VERSION ${SKBUILD_PROJECT_VERSION}
+    LANGUAGES CXX)
 
-pybind11_add_module(RCTDSP2
+set(PYBIND11_FINDPYTHON ON)
+find_package(pybind11 CONFIG REQUIRED)
+
+pybind11_add_module(rct_dsp2
     src/sdr_record.cpp
     src/usrp.cpp
     src/iq_data.cpp
@@ -17,8 +21,7 @@ pybind11_add_module(RCTDSP2
 
 find_package(Boost QUIET REQUIRED COMPONENTS program_options system thread)
 
-
-target_link_libraries(RCTDSP2
+target_link_libraries(rct_dsp2
     PUBLIC
         uhd
         fftw3
@@ -31,9 +34,10 @@ target_link_libraries(RCTDSP2
         hackrf
     )
 
-target_compile_definitions(RCTDSP2
-                           PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO}
+target_compile_definitions(rct_dsp2
+                           PRIVATE VERSION_INFO=${PROJECT_VERSION}
                            USE_PYBIND11=1)
+install(TARGETS rct_dsp2 DESTINATION .)
 
 add_executable(pingFinderTest
     src/sdr_record.cpp

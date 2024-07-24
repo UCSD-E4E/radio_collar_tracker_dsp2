@@ -1,7 +1,14 @@
 '''Testing imports
 '''
-from RCTDSP2 import PingFinder
+from importlib.metadata import version
 
+from rct_dsp2 import PingFinder, __version__
+
+
+def test_version():
+    """Tests the version matching
+    """
+    assert version('rct_dsp2') == __version__
 
 def test_import():
     """Testing RCT DSP2 members

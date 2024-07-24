@@ -25,6 +25,7 @@ jobs:
         with:
           packages: cmake build-essential pkg-config uhd-host libboost-all-dev libusb-1.0-0-dev libfftw3-dev python3-dev libuhd-dev libairspy-dev libhackrf-dev
           version: 1.0
+          execute_install_scripts: true
 
       - name: Install package
         run: |

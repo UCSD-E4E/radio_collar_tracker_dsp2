@@ -20,6 +20,7 @@ TX_ENABLED = False
 #     callback_called += 1
 #     print(f'Got ping at {now}, amplitude is {amplitude} on frequency {frequency} Hz')
 
+
 def test_run():
     """Test Run
     """
@@ -35,7 +36,9 @@ def test_run():
     ping_finder.ping_min_snr = 25
     ping_finder.ping_max_len_mult = 1.5
     ping_finder.ping_min_len_mult = 0.5
-    ping_finder.target_frequencies = [173964000, 173900000]
+    ping_finder.target_frequencies = [173500000 + 1000]
+
+    ping_finder.sdr_type = 5
 
     phony_callback = Mock()
 
@@ -46,24 +49,26 @@ def test_run():
         assert isinstance(phony_callback.call_args.args[1], float)
         assert isinstance(phony_callback.call_args.args[2], int)
 
-
     output_path = Path(ping_finder.output_dir)
     for file in output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"):
         file.unlink()
 
     if SDR_ENABLED is False:
         return
-    assert ping_finder.run_flag == False
+    assert not ping_finder.run_flag
     ping_finder.start()
-    assert ping_finder.run_flag == True
+    assert ping_finder.run_flag
 
     time.sleep(run_time)
 
-    assert ping_finder.run_flag == True
+    assert ping_finder.run_flag
     ping_finder.stop()
-    assert ping_finder.run_flag == False
+    assert not ping_finder.run_flag
     raw_files = list(output_path.glob(f"RAW_DATA_{ping_finder.run_num:06d}_*"))
     assert len(raw_files) > 0
 
     file_sizes = [f.stat().st_size for f in raw_files]
-    assert abs(sum(file_sizes) / 2 / 2 / ping_finder.sampling_rate - run_time) < 1
+    total_written_data_bytes = sum(file_sizes)
+    total_written_data_samples = total_written_data_bytes / 2 / 2
+    assert abs(total_written_data_samples /
+               ping_finder.sampling_rate - run_time) < 1

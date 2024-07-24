@@ -8,6 +8,7 @@ pybind11_add_module(RCTDSP2
     src/iq_data.cpp
     src/dspv3.cpp
     src/sdr_test.cpp
+    src/sdr_generator.cpp
     src/ping_sink.cpp
     src/airspy.cpp
     src/hackrf.cpp
@@ -40,6 +41,7 @@ add_executable(pingFinderTest
     src/iq_data.cpp
     src/dspv3.cpp
     src/sdr_test.cpp
+    src/sdr_generator.cpp
     src/ping_sink.cpp
     src/airspy.cpp
     src/test_PingFinder.cpp

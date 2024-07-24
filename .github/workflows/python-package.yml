@@ -15,14 +15,14 @@ permissions:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python 3.8
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.8"
+        python-version: "3.12"
     - name: Set up APT repositories
       run: |
         sudo add-apt-repository -y ppa:ettusresearch/uhd
@@ -36,10 +36,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -U six requests pyserial wheel
+        python -m pip install -U wheel
         git clone --depth 1 https://github.com/airspy/airspyone_host.git /tmp/airspyone_host
         git clone --depth 1 https://github.com/greatscottgadgets/hackrf.git /tmp/hackrf
-        git clone --depth 1 https://github.com/UCSD-E4E/radio_collar_tracker_comms /tmp/radio_collar_tracker_comms
         mkdir /tmp/airspyone_host/build
         mkdir /tmp/hackrf/host/build
         mkdir /tmp/wheels
@@ -56,19 +55,10 @@ jobs:
         sudo make install
         sudo ldconfig
 
-        python -m pip install -U wheel
-        cd /tmp/radio_collar_tracker_comms
-        python -m pip install -U .
-        python setup.py bdist_wheel
-        cp ./dist/*.whl /tmp/wheels/
         cd $GITHUB_WORKSPACE
         git submodule update --init --recursive
         python setup.py bdist_wheel
         cp ./dist/*.whl /tmp/wheels/
-    - name: Obtain dependencies
-      run: |
-        wget https://files.pythonhosted.org/packages/75/9f/456a34915e73ae9c102cab1a1ee77adec27ede4ae1756cc82c8fdb46f55c/nmcli-1.1.2-py3-none-any.whl -O /tmp/wheels/nmcli-1.1.2-py3-none-any.whl
-        wget https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl -O /tmp/wheels/pyserial-3.5-py2.py3-none-any.whl
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:

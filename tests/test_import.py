@@ -2,6 +2,7 @@
 '''
 from RCTDSP2 import PingFinder
 
+
 def test_import():
     """Testing RCT DSP2 members
     """

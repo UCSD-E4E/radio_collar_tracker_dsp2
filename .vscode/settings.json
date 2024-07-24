@@ -12,6 +12,7 @@
     ],
     "cmake.configureOnOpen": true,
     "files.associations": {
+        ".releaserc": "json",
         "functional": "cpp",
         "condition_variable": "cpp",
         "string_view": "cpp",
@@ -79,10 +80,22 @@
         "valarray": "cpp",
         "bit": "cpp",
         "random": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "csignal": "cpp"
     },
     "editor.rulers": [
-    80
+        100
     ],
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "newLine",
+    "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine",
+    "C_Cpp.vcFormat.newLine.beforeOpenBrace.namespace": "newLine",
+    "C_Cpp.vcFormat.newLine.beforeWhileInDoWhile": true,
+    "C_Cpp.doxygen.generatedStyle": "/**",
+    "C_Cpp.clang_format_fallbackStyle": "WebKit",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modifications",
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_sortIncludes": true
 }

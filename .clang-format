@@ -1,0 +1,19 @@
+---
+BasedOnStyle: LLVM
+AccessModifierOffset: -4
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLoopsOnASingleLine: 'false'
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Allman
+ColumnLimit: '100'
+ExperimentalAutoDetectBinPacking: false
+IncludeBlocks: Regroup
+IndentWidth: '4'
+Language: Cpp
+NamespaceIndentation: All
+SortIncludes: 'true'
+TabWidth: '4'
+UseTab: Never
+...

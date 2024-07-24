@@ -12,6 +12,8 @@ def test_version():
 def test_import():
     """Testing RCT DSP2 members
     """
+    # pylint: disable=too-many-statements
+
     assert hasattr(rct_dsp2.PingFinder, '__init__')
     pf_ = rct_dsp2.PingFinder()
     assert pf_ is not None

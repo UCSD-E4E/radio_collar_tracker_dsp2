@@ -4,13 +4,12 @@
 #include <queue>
 namespace RCT
 {
-    template <class T>
-    void updated_hwm(std::queue<T>& queue, int& hwm)
+    template <class T> void updated_hwm(std::queue<T> &queue, int &hwm)
     {
-        if(queue.size() > hwm)
+        if (queue.size() > hwm)
         {
             hwm = queue.size();
         }
     }
-}
+} // namespace RCT
 #endif

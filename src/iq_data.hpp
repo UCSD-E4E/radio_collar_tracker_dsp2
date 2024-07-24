@@ -2,59 +2,61 @@
 #define __IQ_DATA_H__
 
 #include <complex>
-#include <vector>
+#include <cstdint>
 #include <memory>
+#include <vector>
 
-namespace RCT{
-	
-	
-	/**
-	 * Complex data format.  IQ data is stored as a complex int16_t, that is,
-	 * the real and imaginary components are both int16_t.
-	 */
-	typedef std::complex<short> short_cpx;
+namespace RCT
+{
 
-	/**
-	 * Data struct containing IQ data and timestamp information.
-	 */
-	struct IQdata{
+    /**
+     * Complex data format.  IQ data is stored as a complex int16_t, that is,
+     * the real and imaginary components are both int16_t.
+     */
+    typedef std::complex<short> short_cpx;
 
-		/**
-		 * Convenience constructor.
-		 * @param rx_buffer_size	Size of data buffer.
-		 * @param time_ms			Timestamp of first sample in ms according to
-		 *                  		local system clock.
-		 */
-		IQdata(const std::size_t rx_buffer_size, std::uint64_t time_ms = 0);
+    /**
+     * Data struct containing IQ data and timestamp information.
+     */
+    struct IQdata
+    {
 
-		/**
-		 * Copy Constructor
-		 * @param cpy	IQdata object to copy
-		 */
-		IQdata(const IQdata& cpy);
+        /**
+         * Convenience constructor.
+         * @param rx_buffer_size	Size of data buffer.
+         * @param time_ms			Timestamp of first sample in ms according to
+         *                  		local system clock.
+         */
+        IQdata(const std::size_t rx_buffer_size, std::uint64_t time_ms = 0);
 
-		/**
-		 * Destructor - this will deallocate the internal data.
-		 */
-		~IQdata();
+        /**
+         * Copy Constructor
+         * @param cpy	IQdata object to copy
+         */
+        IQdata(const IQdata &cpy);
 
-		/**
-		 * Returns the number of samples this struct contains.
-		 * @return Number of samples contained.
-		 */
-		std::size_t size();
+        /**
+         * Destructor - this will deallocate the internal data.
+         */
+        ~IQdata();
 
-		/**
-		 * Data vector.  Data should be in ascending temporal order.
-		 */
-		std::vector<short_cpx>* data;
-		/**
-		 * Timestamp of first sample in ms according to local system clock.
-		 */
-		std::uint64_t time_ms;
-	};
+        /**
+         * Returns the number of samples this struct contains.
+         * @return Number of samples contained.
+         */
+        std::size_t size();
 
-	typedef std::shared_ptr<IQdata> IQdataPtr;
-}
+        /**
+         * Data vector.  Data should be in ascending temporal order.
+         */
+        std::vector<short_cpx> *data;
+        /**
+         * Timestamp of first sample in ms according to local system clock.
+         */
+        std::uint64_t time_ms;
+    };
+
+    typedef std::shared_ptr<IQdata> IQdataPtr;
+} // namespace RCT
 
 #endif

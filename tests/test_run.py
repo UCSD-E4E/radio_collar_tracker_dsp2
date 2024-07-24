@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from rct_dsp2 import PingFinder
+from rct_dsp2 import PingFinder, SDR_TYPE_GENERATOR
 
 SDR_ENABLED = True
 GPS_ENABLED = True
@@ -38,7 +38,7 @@ def test_run():
     ping_finder.ping_min_len_mult = 0.5
     ping_finder.target_frequencies = [173500000 + 1000]
 
-    ping_finder.sdr_type = 5
+    ping_finder.sdr_type = SDR_TYPE_GENERATOR
 
     phony_callback = Mock()
 

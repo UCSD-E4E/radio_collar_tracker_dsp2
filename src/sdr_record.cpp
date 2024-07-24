@@ -257,6 +257,12 @@ PYBIND11_MODULE(rct_dsp2, m)
 
     )pbdoc";
 
+    m.attr("SDR_TYPE_USRP") = py::int_(SDR_TYPE_USRP);
+    m.attr("SDR_TYPE_AIRSPY") = py::int_(SDR_TYPE_AIRSPY);
+    m.attr("SDR_TYPE_HACKRF") = py::int_(SDR_TYPE_HACKRF);
+    m.attr("SDR_TYPE_FILE") = py::int_(SDR_TYPE_FILE);
+    m.attr("SDR_TYPE_GENERATOR") = py::int_(SDR_TYPE_GENERATOR);
+
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
 #else

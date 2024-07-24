@@ -65,7 +65,7 @@ jobs:
       uses: python-semantic-release/python-semantic-release@v9.8.6
       id: release
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.RELEASER }}
         root_options: "-vv"
     outputs:
       release: ${{ steps.release.outputs.released }}

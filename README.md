@@ -2,10 +2,14 @@
 This requires Ubuntu 24.04 or later.
 
 ```
+sudo apt-get install -y software-properties-common
 sudo add-apt-repository ppa:ettusresearch/uhd
 sudo apt-get update
 sudo apt-get install -y fftw-dev libboost-all-dev libuhd-dev uhd-host libairspy-dev libhackrf-dev python3 python3-dev python3-pip python3-venv cmake build-essential
+python3 -m venv .venv
+source .venv/bin/activate
 python -m pip install .
+uhd_images_downloader
 ```
 
 # Usage:

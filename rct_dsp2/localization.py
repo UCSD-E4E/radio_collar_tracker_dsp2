@@ -57,11 +57,16 @@ class LocationEstimator:
         else:
             self.__pings[frequency].append(new_ping)
 
-    def do_estimate(self, frequency: int) -> Optional[Tuple[float, float, float]]:
+    def do_estimate(self,
+                    frequency: int,
+                    *,
+                    xy_bounds: Tuple[float, float, float, float] = None) -> Optional[Tuple[float, float, float]]:
         """Performs the estimate
 
         Args:
             frequency (int): Frequency to estimate on
+            xy_bounds (Tuple[float, float, float, float]): Optional XY bounds as 
+            [xmin xmax ymin ymax] to enforce on the estimate.  Defaults to UTM coordinate min/max.
 
         Raises:
             KeyError: Unknown frequency
@@ -75,6 +80,9 @@ class LocationEstimator:
 
         if len(self.__pings[frequency]) < 4:
             return None
+
+        if not xy_bounds:
+            xy_bounds = (167000, 833000, 0, 10000000)
 
         pings = np.array([ping.to_numpy() for ping in self.__pings[frequency]])
 
@@ -91,7 +99,8 @@ class LocationEstimator:
         res_x = least_squares(
             fun=self.__residuals,
             x0=params,
-            bounds=([167000, 0, -np.inf, 2], [833000, 10000000, np.inf, 2.1]),
+            bounds=([xy_bounds[0], xy_bounds[2], -np.inf, 2],
+                    [xy_bounds[1], xy_bounds[3], np.inf, 2.1]),
             args=(pings,)
         )
 

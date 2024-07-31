@@ -1,5 +1,6 @@
 '''Fixed runtime, record only example
 '''
+# pylint: disable=duplicate-code
 import datetime as dt
 import time
 

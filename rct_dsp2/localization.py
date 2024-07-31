@@ -58,9 +58,10 @@ class LocationEstimator:
             self.__pings[frequency].append(new_ping)
 
     def do_estimate(self,
-                    frequency: int,
-                    *,
-                    xy_bounds: Tuple[float, float, float, float] = None) -> Optional[Tuple[float, float, float]]:
+                        frequency: int,
+                        *,
+                    xy_bounds: Tuple[float, float, float, float] = None) -> \
+            Optional[Tuple[float, float, float]]:
         """Performs the estimate
 
         Args:

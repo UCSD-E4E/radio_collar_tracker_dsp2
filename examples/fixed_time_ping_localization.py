@@ -1,5 +1,6 @@
 '''Fixed runtime, random position localization example
 '''
+# pylint: disable=duplicate-code
 import datetime as dt
 import time
 from random import randint
@@ -15,6 +16,7 @@ def position_lookup(now: dt.datetime) -> Tuple[float, float, float]:
     Args:
         now (dt.datetime): Timestamp of the ping
     """
+    # pylint: disable=unused-argument
     x = randint(-100, 0)
     y = randint(100, 200)
     z = randint(30, 40)

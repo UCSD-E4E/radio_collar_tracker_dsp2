@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## v1.1.0 (2024-08-14)
+
+### Chore
+
+* chore: Fixes .pylintrc for loading c extensions ([`b37f8a6`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/b37f8a6558df16809f55beee82c4887192268942))
+
+### Documentation
+
+* docs: Adds example scripts ([`816a218`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/816a21865f39da9d5950833e3267e2f3eaf64e2d))
+
+### Feature
+
+* feat: Allows for optional bounds to be set ([`549b861`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/549b861f50fb7b9aaed70ac23163c7a33b3f0814))
+
+* feat: Adds localization ([`b428259`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/b428259fde86206b5950613ad342096a1c668ebb))
+
+* feat: Adding localization module ([`7e32210`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/7e32210e8bb3b2010a492b9182356a93c89c12fe))
+
+### Fix
+
+* fix: Moves c extension module to _rct_dsp2 ([`0350717`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/0350717761e54e4f282b77bc5fc631d390ff783a))
+
+### Style
+
+* style: Fixes style ([`82ee338`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/82ee338fd56dd190af0b8b83ea55a7dc1f5f171f))
+
+### Unknown
+
+* Merge pull request #28 from UCSD-E4E/localization
+
+feat: Adds localization ([`3ef5d36`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/3ef5d365028c9ca6be029e6ac0662f73e40107b2))
+
 ## v1.0.0 (2024-07-24)
 
 ### Breaking

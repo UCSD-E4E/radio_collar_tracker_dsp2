@@ -6,7 +6,7 @@ project(${SKBUILD_PROJECT_NAME}
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
-pybind11_add_module(rct_dsp2
+pybind11_add_module(_rct_dsp2
     src/sdr_record.cpp
     src/usrp.cpp
     src/iq_data.cpp
@@ -21,7 +21,7 @@ pybind11_add_module(rct_dsp2
 
 find_package(Boost QUIET REQUIRED COMPONENTS program_options system thread)
 
-target_link_libraries(rct_dsp2
+target_link_libraries(_rct_dsp2
     PUBLIC
         uhd
         fftw3
@@ -34,10 +34,10 @@ target_link_libraries(rct_dsp2
         hackrf
     )
 
-target_compile_definitions(rct_dsp2
+target_compile_definitions(_rct_dsp2
                            PRIVATE VERSION_INFO=${PROJECT_VERSION}
                            USE_PYBIND11=1)
-install(TARGETS rct_dsp2 DESTINATION .)
+install(TARGETS _rct_dsp2 DESTINATION .)
 
 add_executable(pingFinderTest
     src/sdr_record.cpp

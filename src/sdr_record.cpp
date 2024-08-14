@@ -179,7 +179,7 @@ std::unique_ptr<RCT::PingFinder> RCT::PingFinder::create(void)
 }
 
 #if USE_PYBIND11 == 1
-PYBIND11_MODULE(rct_dsp2, m)
+PYBIND11_MODULE(_rct_dsp2, m)
 {
     auto pf = py::class_<RCT::PingFinder>(
         m,

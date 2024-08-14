@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v1.1.1 (2024-08-14)
+
+### Fix
+
+* fix: Fixes example ([`0b61e82`](https://github.com/UCSD-E4E/radio_collar_tracker_dsp2/commit/0b61e82c878f1a588530a4ef2d1d5bd6d5d7e201))
+
 ## v1.1.0 (2024-08-14)
 
 ### Chore

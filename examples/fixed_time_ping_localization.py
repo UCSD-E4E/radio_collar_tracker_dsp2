@@ -54,7 +54,8 @@ def main():
     ping_finder.stop()
 
     for frequency in localizer.get_frequencies():
-        estimate = localizer.do_estimate(frequency=frequency)
+        estimate = localizer.do_estimate(
+            frequency=frequency, xy_bounds=(-200, 200, -200, 200))
         print(f'Frequency {frequency} estimated at {estimate}')
 
 
